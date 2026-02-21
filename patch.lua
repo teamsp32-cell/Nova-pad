@@ -1,17 +1,29 @@
--- 🌟 LIVE PATCH v4: Meditation Sounds + Smart TTS Menu 🌟
+-- 🌟 LIVE PATCH v6: All Meditation Sounds (GitHub + Fast Links) & Smart TTS 🌟
 
 function showAmbientMenu()
-  local opts = {"🕉️ ओम ध्यान (Om Chanting)", "🥣 तिब्बती बाउल (Singing Bowl)", "🌧️ बारिश (Rain Sounds)", "🎵 लो-फाई बीट्स (Lofi Study)", "⏹️ बंद करें (Stop)"}
+  local opts = {
+      "🧘 ध्यान संगीत 1 (Meditation 1)", 
+      "🧘 ध्यान संगीत 2 (Meditation 2)", 
+      "🧘 ध्यान संगीत 3 (Meditation 3)", 
+      "🌧️ बारिश की आवाज़ (Rain Sounds)", 
+      "🎵 लो-फाई बीट्स (Lofi Study)", 
+      "🎹 रिलैक्सिंग पियानो (Relaxing Piano)", 
+      "⏹️ बंद करें (Stop)"
+  }
   showNovaMenu("ध्यान और फोकस (Meditation)", opts, function(w)
     if w==0 then 
-        controlAmbientAudio("https://archive.org/download/OmChanting_201602/Om%20Chanting.mp3", "Om Chanting")
+        controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20(1).mp3", "Meditation 1")
     elseif w==1 then 
-        controlAmbientAudio("https://upload.wikimedia.org/wikipedia/commons/f/f6/Tibetan_Singing_Bowl.ogg", "Singing Bowl")
+        controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20music%202.mp3", "Meditation 2")
     elseif w==2 then 
-        controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
+        controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20-%201%2C.mp3", "Meditation 3")
     elseif w==3 then 
-        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
+        controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
     elseif w==4 then 
+        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
+    elseif w==5 then 
+        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
+    elseif w==6 then 
         controlAmbientAudio(nil) 
     end
   end)
