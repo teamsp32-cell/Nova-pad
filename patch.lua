@@ -1,12 +1,19 @@
--- 🌟 LIVE PATCH v3: Ambient Sounds + Smart TTS Menu 🌟
+-- 🌟 LIVE PATCH v4: Meditation Sounds + Smart TTS Menu 🌟
 
 function showAmbientMenu()
-  local opts = {"🌧️ Rain Sounds", "🎵 Lofi Study Beats", "🎹 Relaxing Piano", "⏹️ Stop Music"}
-  showNovaMenu("Ambient Focus Mode", opts, function(w)
-    if w==0 then controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
-    elseif w==1 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
-    elseif w==2 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
-    elseif w==3 then controlAmbientAudio(nil) end
+  local opts = {"🕉️ ओम ध्यान (Om Chanting)", "🥣 तिब्बती बाउल (Singing Bowl)", "🌧️ बारिश (Rain Sounds)", "🎵 लो-फाई बीट्स (Lofi Study)", "⏹️ बंद करें (Stop)"}
+  showNovaMenu("ध्यान और फोकस (Meditation)", opts, function(w)
+    if w==0 then 
+        controlAmbientAudio("https://archive.org/download/OmChanting_201602/Om%20Chanting.mp3", "Om Chanting")
+    elseif w==1 then 
+        controlAmbientAudio("https://upload.wikimedia.org/wikipedia/commons/f/f6/Tibetan_Singing_Bowl.ogg", "Singing Bowl")
+    elseif w==2 then 
+        controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
+    elseif w==3 then 
+        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
+    elseif w==4 then 
+        controlAmbientAudio(nil) 
+    end
   end)
 end
 
@@ -37,7 +44,6 @@ function openSmartTextCleaner()
         local ttsOpts = {"🇮🇳 Read in Hindi", "🇬🇧 Read in English", "⚙️ Voice Settings (Phone)", "⏹️ Stop Reading"}
         showNovaMenu("TTS Options", ttsOpts, function(tIdx)
             if tIdx == 2 then
-                -- Open Phone's Native TTS Settings
                 local intent = Intent("com.android.settings.TTS_SETTINGS")
                 pcall(function() activity.startActivity(intent) end)
             elseif tIdx == 3 then
