@@ -1,10 +1,8 @@
--- 🌟 LIVE PATCH v12: Auto-Popup Notice (No Menu Button) + Meditation + TTS 🌟
+-- 🌟 LIVE PATCH v8: Meditation + TTS + Smart Notice Engine 🌟
 
 import "android.media.MediaPlayer"
-import "android.speech.tts.TextToSpeech"
-import "java.util.Locale"
 
--- 🔥 1. FORCE LOOP AUDIO PLAYER
+-- 🔥 FORCE LOOP AUDIO PLAYER
 function controlAmbientAudio(url, title)
   if ambientPlayer then 
      pcall(function() ambientPlayer.stop() end)
@@ -27,11 +25,15 @@ function controlAmbientAudio(url, title)
   end
 end
 
--- 🎧 2. MEDITATION MENU
 function showAmbientMenu()
   local opts = {
-      "🧘 ध्यान संगीत 1 (Meditation 1)", "🧘 ध्यान संगीत 2 (Meditation 2)", "🧘 ध्यान संगीत 3 (Meditation 3)", 
-      "🌧️ बारिश की आवाज़ (Rain Sounds)", "🎵 लो-फाई बीट्स (Lofi Study)", "🎹 रिलैक्सिंग पियानो (Relaxing Piano)", "⏹️ बंद करें (Stop)"
+      "🧘 ध्यान संगीत 1 (Meditation 1)", 
+      "🧘 ध्यान संगीत 2 (Meditation 2)", 
+      "🧘 ध्यान संगीत 3 (Meditation 3)", 
+      "🌧️ बारिश की आवाज़ (Rain Sounds)", 
+      "🎵 लो-फाई बीट्स (Lofi Study)", 
+      "🎹 रिलैक्सिंग पियानो (Relaxing Piano)", 
+      "⏹️ बंद करें (Stop)"
   }
   showNovaMenu("ध्यान और फोकस (Meditation)", opts, function(w)
     if w==0 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20(1).mp3", "Meditation 1")
@@ -44,12 +46,16 @@ function showAmbientMenu()
   end)
 end
 
--- 🧰 3. SMART TEXT TOOLS (TTS)
+import "android.speech.tts.TextToSpeech"
+import "java.util.Locale"
 local tts_player = nil
+
 function openSmartTextCleaner()
   local text = noteEditor.getText().toString()
   if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
+  
   local opts = {"📞 Extract Phone Numbers", "🔗 Extract Links", "✂️ Remove Symbols", "🗑️ Remove Emojis", "✨ Auto-Format Article", "🗣️ Read Text Aloud (TTS)", "🔠 Convert to UPPERCASE", "🔡 Convert to lowercase"}
+  
   showNovaMenu("Smart Text Tools", opts, function(w)
     local jText = String(text)
     if w == 0 then
@@ -61,6 +67,7 @@ function openSmartTextCleaner()
     elseif w == 2 then noteEditor.setText(jText.replaceAll("[*#_~`|^]", "")); Toast.makeText(activity, "Symbols removed!", 0).show()
     elseif w == 3 then noteEditor.setText(jText.replaceAll("[\\x{1F300}-\\x{1F6FF}|\\x{2600}-\\x{26FF}|\\x{2700}-\\x{27BF}|\\x{1F900}-\\x{1F9FF}|\\x{1F1E6}-\\x{1F1FF}]", "")); Toast.makeText(activity, "Emojis removed!", 0).show()
     elseif w == 4 then local ft = jText.replaceAll(" +", " "); ft = ft.replaceAll("([.,])([A-Za-z\\u0900-\\u097F])", "$1 $2"); noteEditor.setText(ft.trim()); Toast.makeText(activity, "Formatted beautifully!", 0).show() 
+    
     elseif w == 5 then 
         local ttsOpts = {"🇮🇳 Read in Hindi", "🇬🇧 Read in English", "⚙️ Voice Settings (Phone)", "⏹️ Stop Reading"}
         showNovaMenu("TTS Options", ttsOpts, function(tIdx)
@@ -86,22 +93,25 @@ function openSmartTextCleaner()
   end)
 end
 
--- 🚨 4. AUTO-POPUP NOTICE ENGINE (सिर्फ़ स्क्रीन पर आएगा)
+-- 📢 NEW: SMART NOTICE ENGINE
 function checkGlobalNotice()
-   local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time())
+   local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt"
    local localNoticeFile = activity.getExternalFilesDir(nil).toString() .. "/last_notice.txt"
 
    Http.get(noticeUrl, function(code, content)
       if code == 200 and content and #content > 2 then
+         -- पुराना नोटिस पढें ताकि बार-बार एक ही नोटिस न दिखे
          local f = io.open(localNoticeFile, "r")
          local lastNotice = ""
          if f then lastNotice = f:read("*a"); f:close() end
 
+         -- अगर नोटिस नया है, तभी दिखाएं
          if content ~= lastNotice then
             AlertDialog.Builder(activity)
             .setTitle("📢 Nova Pad सूचना")
             .setMessage(content)
             .setPositiveButton("ठीक है", {onClick=function(d)
+                -- देखने के बाद सेव कर लें ताकि अगली बार न आए
                 local fw = io.open(localNoticeFile, "w")
                 if fw then fw:write(content); fw:close() end
                 d.dismiss()
