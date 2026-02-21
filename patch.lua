@@ -1,15 +1,13 @@
--- 🌟 LIVE PATCH: Ambient Sound Fix (v2.8.1) 🌟
--- यह कोड बिना ऐप अपडेट किए पुराने खराब लिंक्स को तुरंत बदल देगा।
-
+-- 🌟 LIVE PATCH: 100% Working Ambient Sounds 🌟
 function showAmbientMenu()
-  local opts = {"🌧️ Rain Sounds", "🌊 Ocean Waves", "🌲 Forest Morning", "⏹️ Stop Music"}
+  local opts = {"🌧️ Rain Sounds", "🎵 Lofi Study Beats", "🎹 Relaxing Piano", "⏹️ Stop Music"}
   showNovaMenu("Ambient Focus Mode", opts, function(w)
     if w==0 then 
-        controlAmbientAudio("https://upload.wikimedia.org/wikipedia/commons/3/30/Rain_Sounds.ogg", "Rain Sounds")
+        controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
     elseif w==1 then 
-        controlAmbientAudio("https://upload.wikimedia.org/wikipedia/commons/7/77/Ocean_Waves_Crashing.ogg", "Ocean Waves")
+        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
     elseif w==2 then 
-        controlAmbientAudio("https://upload.wikimedia.org/wikipedia/commons/6/6e/Bialowieza_forest_morning_birds.ogg", "Forest Morning")
+        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
     elseif w==3 then 
         controlAmbientAudio(nil) 
     end
