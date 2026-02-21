@@ -1,10 +1,10 @@
--- 🌟 LIVE PATCH v10: Auto-Popup Notice + Menu Notice Board + Meditation Loop + TTS 🌟
+-- 🌟 LIVE PATCH v11: Menu Button Fix + Anti-Cache Notice + Meditation Loop + TTS 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
 import "java.util.Locale"
 
--- 🔥 1. FORCE LOOP AUDIO PLAYER (म्यूज़िक फिक्स)
+-- 🔥 1. FORCE LOOP AUDIO PLAYER
 function controlAmbientAudio(url, title)
   if ambientPlayer then 
      pcall(function() ambientPlayer.stop() end)
@@ -44,7 +44,7 @@ function showAmbientMenu()
   end)
 end
 
--- 🧰 3. SMART TEXT TOOLS (TTS & Case Converter)
+-- 🧰 3. SMART TEXT TOOLS
 local tts_player = nil
 function openSmartTextCleaner()
   local text = noteEditor.getText().toString()
@@ -86,7 +86,7 @@ function openSmartTextCleaner()
   end)
 end
 
--- 📢 4. MAIN MENU OVERRIDE ('Notice Board' बटन के साथ)
+-- 📢 4. MAIN MENU OVERRIDE 
 function showToolsMenu()
   local opts = {
      "🔔 सूचनाएं (Notice Board)", 
@@ -98,7 +98,8 @@ function showToolsMenu()
   showNovaMenu("Menu", opts, function(w)
      if w==0 then 
         Toast.makeText(activity, "सूचनाएं चेक की जा रही हैं... ⏳", 0).show()
-        Http.get("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt", function(code, content)
+        -- यहाँ ?t=... लगाया है ताकि हर बार ताज़ा फाइल मिले
+        Http.get("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time()), function(code, content)
            if code == 200 and content and #content > 2 then
               AlertDialog.Builder(activity).setTitle("📢 Notice Board").setMessage(content).setPositiveButton("Close", nil).show()
            else
@@ -123,9 +124,14 @@ function showToolsMenu()
   end)
 end
 
--- 🚨 5. AUTO-POPUP NOTICE ENGINE (सिर्फ नई सूचना होने पर खुलेगा)
+-- 🔗 5. FIX: BUTTON RE-LINKING (यह बहुत ज़रूरी था!)
+-- पुराने बटन्स को नए वाले मेनू के साथ जोड़ना
+if btnMenuTop then btnMenuTop.setOnClickListener(View.OnClickListener{onClick=showToolsMenu}) end
+if fabBtn then fabBtn.setOnClickListener(View.OnClickListener{onClick=showToolsMenu}) end
+
+-- 🚨 6. AUTO-POPUP NOTICE ENGINE (Anti-Cache के साथ)
 function checkGlobalNotice()
-   local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt"
+   local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time())
    local localNoticeFile = activity.getExternalFilesDir(nil).toString() .. "/last_notice.txt"
 
    Http.get(noticeUrl, function(code, content)
@@ -136,7 +142,7 @@ function checkGlobalNotice()
 
          if content ~= lastNotice then
             AlertDialog.Builder(activity)
-            .setTitle("📢 Nova Pad नई सूचना")
+            .setTitle("📢 Nova Pad सूचना")
             .setMessage(content)
             .setPositiveButton("ठीक है", {onClick=function(d)
                 local fw = io.open(localNoticeFile, "w")
