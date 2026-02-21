@@ -1,4 +1,35 @@
--- 🌟 LIVE PATCH v6: All Meditation Sounds (GitHub + Fast Links) & Smart TTS 🌟
+-- 🌟 LIVE PATCH v7: Force Loop Fix for GitHub Audios + Meditation + TTS 🌟
+
+import "android.media.MediaPlayer"
+
+-- 🔥 FORCE LOOP AUDIO PLAYER FIX
+function controlAmbientAudio(url, title)
+  if ambientPlayer then 
+     pcall(function() ambientPlayer.stop() end)
+     pcall(function() ambientPlayer.release() end)
+     ambientPlayer = nil 
+  end
+  if url then
+    Toast.makeText(activity, "Loading "..title.." ⏳", 0).show()
+    ambientPlayer = MediaPlayer()
+    ambientPlayer.setDataSource(url)
+    ambientPlayer.setLooping(true) 
+    
+    -- 🚀 यहाँ है असली जादू: अगर ऑटो-लूप फेल हो जाए, तो यह कोड उसे ज़बरदस्ती 0 से शुरू करेगा!
+    ambientPlayer.setOnCompletionListener(MediaPlayer.OnCompletionListener{
+        onCompletion=function(mp)
+            mp.seekTo(0)
+            mp.start()
+        end
+    })
+
+    ambientPlayer.prepareAsync()
+    ambientPlayer.setOnPreparedListener(MediaPlayer.OnPreparedListener{onPrepared=function(mp) mp.start(); Toast.makeText(activity, "Playing "..title.." 🎶", 0).show() end})
+    ambientPlayer.setOnErrorListener(MediaPlayer.OnErrorListener{onError=function(mp, w, e) Toast.makeText(activity, "Stream failed.", 0).show(); return true end})
+  else 
+    Toast.makeText(activity, "Music Stopped ⏹️", 0).show() 
+  end
+end
 
 function showAmbientMenu()
   local opts = {
@@ -11,21 +42,13 @@ function showAmbientMenu()
       "⏹️ बंद करें (Stop)"
   }
   showNovaMenu("ध्यान और फोकस (Meditation)", opts, function(w)
-    if w==0 then 
-        controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20(1).mp3", "Meditation 1")
-    elseif w==1 then 
-        controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20music%202.mp3", "Meditation 2")
-    elseif w==2 then 
-        controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20-%201%2C.mp3", "Meditation 3")
-    elseif w==3 then 
-        controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
-    elseif w==4 then 
-        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
-    elseif w==5 then 
-        controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
-    elseif w==6 then 
-        controlAmbientAudio(nil) 
-    end
+    if w==0 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20(1).mp3", "Meditation 1")
+    elseif w==1 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20music%202.mp3", "Meditation 2")
+    elseif w==2 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20-%201%2C.mp3", "Meditation 3")
+    elseif w==3 then controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
+    elseif w==4 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
+    elseif w==5 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
+    elseif w==6 then controlAmbientAudio(nil) end
   end)
 end
 
