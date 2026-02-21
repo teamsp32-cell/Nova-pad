@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v11: Menu Button Fix + Anti-Cache Notice + Meditation Loop + TTS 🌟
+-- 🌟 LIVE PATCH v12: Auto-Popup Notice (No Menu Button) + Meditation + TTS 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -44,7 +44,7 @@ function showAmbientMenu()
   end)
 end
 
--- 🧰 3. SMART TEXT TOOLS
+-- 🧰 3. SMART TEXT TOOLS (TTS)
 local tts_player = nil
 function openSmartTextCleaner()
   local text = noteEditor.getText().toString()
@@ -86,50 +86,7 @@ function openSmartTextCleaner()
   end)
 end
 
--- 📢 4. MAIN MENU OVERRIDE 
-function showToolsMenu()
-  local opts = {
-     "🔔 सूचनाएं (Notice Board)", 
-     "Stats ON/OFF", "🎧 Ambient Focus Mode", "🧰 Smart Text Tools", 
-     "📑 Add Bullet Points", "🧹 Clean Empty Lines", "🗑️ Remove Duplicate Lines", 
-     "Focus Mode", "Rhyme Finder", "Thesaurus", "Snippet Manager", 
-     "Copy All", "Share", "Aa Text Size", "🚀 More Features >", "⚙️ Settings >"
-  }
-  showNovaMenu("Menu", opts, function(w)
-     if w==0 then 
-        Toast.makeText(activity, "सूचनाएं चेक की जा रही हैं... ⏳", 0).show()
-        -- यहाँ ?t=... लगाया है ताकि हर बार ताज़ा फाइल मिले
-        Http.get("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time()), function(code, content)
-           if code == 200 and content and #content > 2 then
-              AlertDialog.Builder(activity).setTitle("📢 Notice Board").setMessage(content).setPositiveButton("Close", nil).show()
-           else
-              Toast.makeText(activity, "अभी कोई नई सूचना नहीं है।", 0).show()
-           end
-        end)
-     elseif w==1 then toggleStats()
-     elseif w==2 then showAmbientMenu()
-     elseif w==3 then openSmartTextCleaner()
-     elseif w==4 then addBulletPoints()
-     elseif w==5 then cleanEmptyLines()
-     elseif w==6 then removeDuplicateLines()
-     elseif w==7 then if topBar.getVisibility()==0 then topBar.setVisibility(8); bottomNav.setVisibility(8); Toast.makeText(activity,"Focus ON",0).show() else topBar.setVisibility(0); bottomNav.setVisibility(0) end
-     elseif w==8 then local e=EditText(activity); AlertDialog.Builder(activity).setTitle("Rhyme").setView(e).setPositiveButton("Go",function() activity.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://google.com/search?q=rhyme+"..e.getText().toString()))) end).show()
-     elseif w==9 then local e=EditText(activity); AlertDialog.Builder(activity).setTitle("Thesaurus").setView(e).setPositiveButton("Go",function() activity.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://google.com/search?q=synonym+"..e.getText().toString()))) end).show()
-     elseif w==10 then showSnippetManager()
-     elseif w==11 then activity.getSystemService(Context.CLIPBOARD_SERVICE).setPrimaryClip(ClipData.newPlainText("NP",noteEditor.getText().toString())); Toast.makeText(activity,"Copied",0).show()
-     elseif w==12 then local i=Intent(Intent.ACTION_SEND); i.setType("text/plain"); i.putExtra(Intent.EXTRA_TEXT,noteEditor.getText().toString()); activity.startActivity(Intent.createChooser(i,"Share"))
-     elseif w==13 then showTextSizeDialog()
-     elseif w==14 then showPremiumSubMenu()
-     elseif w==15 then switchTab(3) end
-  end)
-end
-
--- 🔗 5. FIX: BUTTON RE-LINKING (यह बहुत ज़रूरी था!)
--- पुराने बटन्स को नए वाले मेनू के साथ जोड़ना
-if btnMenuTop then btnMenuTop.setOnClickListener(View.OnClickListener{onClick=showToolsMenu}) end
-if fabBtn then fabBtn.setOnClickListener(View.OnClickListener{onClick=showToolsMenu}) end
-
--- 🚨 6. AUTO-POPUP NOTICE ENGINE (Anti-Cache के साथ)
+-- 🚨 4. AUTO-POPUP NOTICE ENGINE (सिर्फ़ स्क्रीन पर आएगा)
 function checkGlobalNotice()
    local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time())
    local localNoticeFile = activity.getExternalFilesDir(nil).toString() .. "/last_notice.txt"
