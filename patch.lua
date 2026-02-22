@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v17: CLEAN RADIO MENU + Multi-Select + Find Fix + Notice + TTS 🌟
+-- 🌟 LIVE PATCH v18: HTTPS RADIO FIX + Clean Menu + Multi-Select + Notice 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -26,13 +26,13 @@ function controlAmbientAudio(url, title)
     })
     ambientPlayer.prepareAsync()
     ambientPlayer.setOnPreparedListener(MediaPlayer.OnPreparedListener{onPrepared=function(mp) mp.start(); Toast.makeText(activity, "Playing "..title.." 🎶", 0).show() end})
-    ambientPlayer.setOnErrorListener(MediaPlayer.OnErrorListener{onError=function(mp, w, e) Toast.makeText(activity, "Stream failed.", 0).show(); return true end})
+    ambientPlayer.setOnErrorListener(MediaPlayer.OnErrorListener{onError=function(mp, w, e) Toast.makeText(activity, "Stream failed. Link error!", 0).show(); return true end})
   else 
     Toast.makeText(activity, "Music Stopped ⏹️", 0).show() 
   end
 end
 
--- 🎧 2. ULTIMATE MEDITATION & RADIO MENU (Cleaned UI)
+-- 🎧 2. ULTIMATE MEDITATION & RADIO MENU (100% HTTPS Secure)
 function showAmbientMenu()
   local opts = {
       "🧘 ध्यान संगीत 1", "🧘 ध्यान संगीत 2", "🧘 ध्यान संगीत 3", 
@@ -48,11 +48,11 @@ function showAmbientMenu()
     elseif w==3 then controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
     elseif w==4 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
     elseif w==5 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
-    -- 📡 LIVE RADIO STATIONS
-    elseif w==6 then controlAmbientAudio("http://ice1.somafm.com/dronezone-128-mp3", "Deep Focus Radio")
-    elseif w==7 then controlAmbientAudio("http://ice1.somafm.com/deepspaceone-128-mp3", "Deep Space Radio")
-    elseif w==8 then controlAmbientAudio("http://streaming.radio.co/s5c5da6a36/listen", "Nature Sounds")
-    elseif w==9 then controlAmbientAudio("http://174.36.206.197:8000/stream", "Classic Radio")
+    -- 📡 100% SECURE HTTPS LIVE RADIO STATIONS
+    elseif w==6 then controlAmbientAudio("https://ice1.somafm.com/dronezone-128-mp3", "Deep Focus Radio")
+    elseif w==7 then controlAmbientAudio("https://ice1.somafm.com/deepspaceone-128-mp3", "Deep Space Radio")
+    elseif w==8 then controlAmbientAudio("https://actions.google.com/sounds/v1/animals/birds_in_forest.ogg", "Nature Sounds")
+    elseif w==9 then controlAmbientAudio("https://stream.srg-ssr.ch/m/rsc_de/mp3_128", "Classic Radio")
     elseif w==10 then controlAmbientAudio(nil) end
   end)
 end
