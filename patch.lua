@@ -1,45 +1,44 @@
 function searchHindiWord(queryText)
     local success, errorMessage = pcall(function()
         
-        -- Java String क्लास को बुला रहे हैं
+        -- Java की ज़रूरी क्लासेस को बुला रहे हैं
         local String = luajava.bindClass("java.lang.String")
+        local Pattern = luajava.bindClass("java.util.regex.Pattern")
         
-        -- EditText का पूरा टेक्स्ट सीधा Java String में बदल रहे हैं
+        -- EditText का पूरा टेक्स्ट ले रहे हैं
         local text = String(noteEditor.getText().toString())
         
-        -- जो शब्द खोजना है, उसे भी सीधा Java String में बदल रहे हैं
-        local query = String(tostring(queryText))
+        -- सर्च करने वाले शब्द को सीधे Java String बना रहे हैं (Lua का tostring हटा दिया गया है)
+        local query = String(queryText)
         
-        -- अब Lua की जगह Java का trim() इस्तेमाल कर रहे हैं ताकि हिंदी के अक्षर सुरक्षित रहें
-        query = query:trim()
-
-        -- अगर टेक्स्ट बॉक्स खाली है तो...
+        -- सर्च वर्ड में से किसी भी प्रकार के अदृश्य अक्षर (Zero Width Space) और खाली जगह को हटा रहे हैं
+        query = query:replaceAll("[\u200B\uFEFF]", ""):trim()
+        
+        -- खाली होने की स्थिति जाँचना
         if text:isEmpty() then
-            print("टेक्स्ट बॉक्स खाली है।")
+            print("लेख खाली है।")
             return
         end
-        
-        -- अगर सर्च बॉक्स खाली है तो...
         if query:isEmpty() then
             print("खोजने के लिए कोई शब्द नहीं दिया गया।")
             return
         end
 
-        print("हम यह खोज रहे हैं: [" .. query .. "]")
-
-        -- पूरी तरह से Java के indexOf का उपयोग करके शब्द खोज रहे हैं
-        local startIndex = text:indexOf(query)
+        -- Pattern.quote का उपयोग कर रहे हैं ताकि शब्द बिल्कुल उसी रूप में खोजा जाए जैसा लिखा है
+        local pattern = Pattern:compile(Pattern:quote(query))
+        local matcher = pattern:matcher(text)
 
         -- अगर शब्द मिल जाता है
-        if startIndex ~= -1 then
-            local wordLength = query:length()
-            local endIndex = startIndex + wordLength
+        if matcher:find() then
+            local startIndex = matcher:start()
+            local endIndex = matcher:end()
             
+            -- सटीक जगह पर टेक्स्ट को हाईलाइट करना
             noteEditor:setSelection(startIndex, endIndex)
             noteEditor:requestFocus()
-            print("शब्द मिल गया और सेलेक्ट हो गया!")
+            print("शब्द मिल गया!")
         else
-            print("नो टेक्स्ट फाउंड (No Text Found)।")
+            print("नो टेक्स्ट फाउंड (शब्द नहीं मिला)।")
         end
         
     end)
