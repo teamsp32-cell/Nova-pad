@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v21: BULLETPROOF GITHUB BIRDS + Radio + Multi-Select + Notice 🌟
+-- 🌟 LIVE PATCH v22: THE ABSOLUTE SEARCH FIX + Radio + Multi-Select + Notice 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -7,7 +7,6 @@ import "android.widget.Button"
 import "android.view.View"
 import "android.text.SpannableString"
 import "android.text.style.BackgroundColorSpan"
-import "java.lang.String"
 
 -- 🔥 1. FORCE LOOP & STREAM AUDIO PLAYER
 function controlAmbientAudio(url, title)
@@ -32,7 +31,7 @@ function controlAmbientAudio(url, title)
   end
 end
 
--- 🎧 2. ULTIMATE MEDITATION & RADIO MENU (100% HTTPS Secure)
+-- 🎧 2. ULTIMATE MEDITATION & RADIO MENU
 function showAmbientMenu()
   local opts = {
       "🧘 ध्यान संगीत 1", "🧘 ध्यान संगीत 2", "🧘 ध्यान संगीत 3", 
@@ -48,10 +47,8 @@ function showAmbientMenu()
     elseif w==3 then controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
     elseif w==4 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
     elseif w==5 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
-    -- 📡 100% SECURE HTTPS LIVE RADIO STATIONS
     elseif w==6 then controlAmbientAudio("https://ice1.somafm.com/dronezone-128-mp3", "Deep Focus Radio")
     elseif w==7 then controlAmbientAudio("https://ice1.somafm.com/deepspaceone-128-mp3", "Deep Space Radio")
-    -- 🐦 BIRD/NATURE RADIO FIX (Now using your ultra-reliable GitHub)
     elseif w==8 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/birds.mp3", "Nature Sounds")
     elseif w==9 then controlAmbientAudio("https://stream.srg-ssr.ch/m/rsc_de/mp3_128", "Classic Radio")
     elseif w==10 then controlAmbientAudio(nil) end
@@ -65,7 +62,8 @@ function openSmartTextCleaner()
   if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
   local opts = {"📞 Extract Phone Numbers", "🔗 Extract Links", "✂️ Remove Symbols", "🗑️ Remove Emojis", "✨ Auto-Format Article", "🗣️ Read Text Aloud (TTS)", "🔠 Convert to UPPERCASE", "🔡 Convert to lowercase"}
   showNovaMenu("Smart Text Tools", opts, function(w)
-    local jText = String(text)
+    local JString = luajava.bindClass("java.lang.String")
+    local jText = JString.valueOf(text)
     if w == 0 then
         local matcher = Pattern.compile("(?:\\+?\\d{1,3}[- ]?)?\\d{10}").matcher(jText); local nums = {}; while matcher.find() do table.insert(nums, matcher.group()) end
         if #nums > 0 then activity.getSystemService(Context.CLIPBOARD_SERVICE).setPrimaryClip(ClipData.newPlainText("Nums", table.concat(nums, "\n"))); Toast.makeText(activity, #nums.." Numbers Copied!", 0).show() else Toast.makeText(activity, "No numbers found.", 0).show() end
@@ -78,11 +76,8 @@ function openSmartTextCleaner()
     elseif w == 5 then 
         local ttsOpts = {"🇮🇳 Read in Hindi", "🇬🇧 Read in English", "⚙️ Voice Settings (Phone)", "⏹️ Stop Reading"}
         showNovaMenu("TTS Options", ttsOpts, function(tIdx)
-            if tIdx == 2 then
-                pcall(function() activity.startActivity(Intent("com.android.settings.TTS_SETTINGS")) end)
-            elseif tIdx == 3 then
-                if tts_player then tts_player.stop() end
-                Toast.makeText(activity, "Stopped Reading ⏹️", 0).show()
+            if tIdx == 2 then pcall(function() activity.startActivity(Intent("com.android.settings.TTS_SETTINGS")) end)
+            elseif tIdx == 3 then if tts_player then tts_player.stop() end; Toast.makeText(activity, "Stopped Reading ⏹️", 0).show()
             else
                 Toast.makeText(activity, "Starting Reader... 🗣️", 0).show()
                 local loc = Locale("hi", "IN")
@@ -104,24 +99,17 @@ end
 function checkGlobalNotice()
    local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time())
    local localNoticeFile = activity.getExternalFilesDir(nil).toString() .. "/last_notice.txt"
-
    Http.get(noticeUrl, function(code, content)
       if code == 200 and content and #content > 2 then
          local f = io.open(localNoticeFile, "r")
          local lastNotice = ""
          if f then lastNotice = f:read("*a"); f:close() end
-
          if content ~= lastNotice then
-            AlertDialog.Builder(activity)
-            .setTitle("📢 Nova Pad सूचना")
-            .setMessage(content)
-            .setPositiveButton("ठीक है", {onClick=function(d)
+            AlertDialog.Builder(activity).setTitle("📢 Nova Pad सूचना").setMessage(content).setPositiveButton("ठीक है", {onClick=function(d)
                 local fw = io.open(localNoticeFile, "w")
                 if fw then fw:write(content); fw:close() end
                 d.dismiss()
-            end})
-            .setCancelable(false)
-            .show()
+            end}).setCancelable(false).show()
          end
       end
    end)
@@ -132,12 +120,7 @@ pcall(checkGlobalNotice)
 function showMultiSelectDialog()
     local rootDir = activity.getExternalFilesDir(nil).toString() .. "/"
     local binDir = rootDir .. "RecycleBin/"
-
-    if currentPath == rootDir then
-        Toast.makeText(activity, "कृपया पहले कोई फोल्डर (Category) खोलें!", 0).show()
-        return
-    end
-
+    if currentPath == rootDir then Toast.makeText(activity, "कृपया पहले कोई फोल्डर (Category) खोलें!", 0).show(); return end
     local files = File(currentPath).listFiles()
     local fileNames = {}
     if files then
@@ -146,11 +129,7 @@ function showMultiSelectDialog()
             if n:find(".txt") then table.insert(fileNames, n) end
         end
     end
-
-    if #fileNames == 0 then
-        Toast.makeText(activity, "इस फोल्डर में कोई नोट्स नहीं हैं!", 0).show()
-        return
-    end
+    if #fileNames == 0 then Toast.makeText(activity, "इस फोल्डर में कोई नोट्स नहीं हैं!", 0).show(); return end
 
     local lv = ListView(activity)
     lv.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE)
@@ -160,7 +139,6 @@ function showMultiSelectDialog()
     local dlg = AlertDialog.Builder(activity)
     dlg.setTitle("✅ मल्टी-सेलेक्ट (Multi-Select)")
     dlg.setView(lv)
-
     dlg.setPositiveButton("🗑️ डिलीट करें", {onClick=function(d)
         local checked = lv.getCheckedItemPositions()
         local count = 0
@@ -171,22 +149,14 @@ function showMultiSelectDialog()
                 count = count + 1
             end
         end
-        if count > 0 then
-            Toast.makeText(activity, count .. " नोट्स डिलीट हो गए!", 0).show()
-            if loadFileList then loadFileList(false) end
-        else
-            Toast.makeText(activity, "कोई नोट सेलेक्ट नहीं किया!", 0).show()
-        end
+        if count > 0 then Toast.makeText(activity, count .. " नोट्स डिलीट हो गए!", 0).show(); if loadFileList then loadFileList(false) end
+        else Toast.makeText(activity, "कोई नोट सेलेक्ट नहीं किया!", 0).show() end
     end})
-
     dlg.setNeutralButton("📁 फोल्डर बदलें (Move)", {onClick=function(d)
         local checked = lv.getCheckedItemPositions()
         local selectedFiles = {}
-        for i=0, #fileNames-1 do
-            if checked.get(i) then table.insert(selectedFiles, fileNames[i+1]) end
-        end
+        for i=0, #fileNames-1 do if checked.get(i) then table.insert(selectedFiles, fileNames[i+1]) end end
         if #selectedFiles == 0 then return end
-
         local cats = {}
         local allFiles = File(rootDir).listFiles()
         if allFiles then
@@ -197,24 +167,19 @@ function showMultiSelectDialog()
                 end
             end
         end
-
         showNovaMenu("कहाँ Move करना है?", cats, function(w)
             local destFolder = rootDir .. cats[w+1] .. "/"
             for _, fName in ipairs(selectedFiles) do
-                local src = currentPath.."/"..fName
-                local dst = destFolder..fName
+                local src = currentPath.."/"..fName; local dst = destFolder..fName
                 local f1 = io.open(src, "r")
                 if f1 then
                     local c = f1:read("*a"); f1:close()
-                    local f2 = io.open(dst, "w+")
-                    if f2 then f2:write(c); f2:close(); os.remove(src) end
+                    local f2 = io.open(dst, "w+"); if f2 then f2:write(c); f2:close(); os.remove(src) end
                 end
             end
-            Toast.makeText(activity, #selectedFiles.." नोट्स Move हो गए!", 0).show()
-            if loadFileList then loadFileList(false) end
+            Toast.makeText(activity, #selectedFiles.." नोट्स Move हो गए!", 0).show(); if loadFileList then loadFileList(false) end
         end)
     end})
-
     dlg.setNegativeButton("कैंसिल", nil)
     dlg.show()
 end
@@ -237,7 +202,7 @@ pcall(function()
     end
 end)
 
--- 🔍 6. BULLETPROOF SEARCH CRASH FIX (Lua/Java Coercion Removed)
+-- 🔍 6. BULLETPROOF SEARCH CRASH FIX (The Final Solution)
 if btnReaderSearch then
   btnReaderSearch.setOnClickListener(View.OnClickListener{onClick=function()
     local e = EditText(activity); e.setHint("सर्च करने के लिए शब्द लिखें...")
@@ -245,24 +210,27 @@ if btnReaderSearch then
        local query = e.getText().toString()
        if #query > 0 then
           local allText = noteEditor.getText().toString()
+          if allText == nil or #allText == 0 then return end
           
           if isParaMode then 
               isParaMode = false; spinReadMode.setSelection(0); updateReaderView() 
               Toast.makeText(activity, "सर्च के लिए फुल टेक्स्ट मोड चालू किया गया", 1).show()
           end
           
-          local jTextLower = String( String(allText):toLowerCase() )
-          local jQueryLower = String( String(query):toLowerCase() )
-          local qLen = jQueryLower:length()
+          -- 🚀 असली जादू: AndroLua के नखरे खत्म करने के लिए 100% Pure Java तरीका
+          local JString = luajava.bindClass("java.lang.String")
+          local jTextLower = JString.valueOf(allText).toLowerCase()
+          local jQueryLower = JString.valueOf(query).toLowerCase()
+          local qLen = jQueryLower.length()
           
           local span = SpannableString(allText)
           local count = 0
-          local startPos = jTextLower:indexOf(jQueryLower:toString())
+          local startPos = jTextLower.indexOf(jQueryLower)
           
           while startPos >= 0 do
              count = count + 1
-             span:setSpan(BackgroundColorSpan(0xFFFFFF00), startPos, startPos + qLen, 33)
-             startPos = jTextLower:indexOf(jQueryLower:toString(), startPos + qLen)
+             span.setSpan(BackgroundColorSpan(0xFFFFFF00), startPos, startPos + qLen, 33)
+             startPos = jTextLower.indexOf(jQueryLower, startPos + qLen)
           end
           
           if count > 0 then 
