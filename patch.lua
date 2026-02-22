@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v22: THE ABSOLUTE SEARCH FIX + Radio + Multi-Select + Notice 🌟
+-- 🌟 LIVE PATCH v23: ACCESSIBLE SEARCH + Radio + Multi-Select + Notice 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -202,7 +202,7 @@ pcall(function()
     end
 end)
 
--- 🔍 6. BULLETPROOF SEARCH CRASH FIX (The Final Solution)
+-- 🔍 6. ACCESSIBLE SEARCH ENGINE (TalkBack Friendly)
 if btnReaderSearch then
   btnReaderSearch.setOnClickListener(View.OnClickListener{onClick=function()
     local e = EditText(activity); e.setHint("सर्च करने के लिए शब्द लिखें...")
@@ -214,15 +214,21 @@ if btnReaderSearch then
           
           if isParaMode then 
               isParaMode = false; spinReadMode.setSelection(0); updateReaderView() 
-              Toast.makeText(activity, "सर्च के लिए फुल टेक्स्ट मोड चालू किया गया", 1).show()
           end
           
-          -- 🚀 असली जादू: AndroLua के नखरे खत्म करने के लिए 100% Pure Java तरीका
           local JString = luajava.bindClass("java.lang.String")
           local jTextLower = JString.valueOf(allText).toLowerCase()
           local jQueryLower = JString.valueOf(query).toLowerCase()
           local qLen = jQueryLower.length()
           
+          -- 🚀 एक्सेसिबिलिटी (Accessibility) के लिए लाइनें अलग करना
+          local foundLines = {}
+          for line in string.gmatch(allText, "[^\r\n]+") do
+              if JString.valueOf(line).toLowerCase().contains(jQueryLower) then
+                  table.insert(foundLines, "📌 " .. line)
+              end
+          end
+
           local span = SpannableString(allText)
           local count = 0
           local startPos = jTextLower.indexOf(jQueryLower)
@@ -235,7 +241,18 @@ if btnReaderSearch then
           
           if count > 0 then 
               readerBody.setText(span)
-              Toast.makeText(activity, "कुल " .. count .. " जगह मिला! (पीले रंग से हाईलाइट किया गया)", 1).show()
+              
+              -- 🌟 नेत्रहीन यूज़र्स के लिए अलग से लिस्ट वाला डायलॉग
+              local lv = ListView(activity)
+              local adp = ArrayAdapter(activity, android.R.layout.simple_list_item_1, foundLines)
+              lv.setAdapter(adp)
+
+              AlertDialog.Builder(activity)
+              .setTitle("🔍 सर्च रिज़ल्ट: " .. query .. " (" .. count .. " बार)")
+              .setView(lv)
+              .setPositiveButton("बंद करें", nil)
+              .show()
+              
           else 
               Toast.makeText(activity, "यह शब्द नहीं मिला।", 0).show() 
           end
