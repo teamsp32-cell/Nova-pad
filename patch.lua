@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v23: ACCESSIBLE SEARCH + Radio + Multi-Select + Notice 🌟
+-- 🌟 LIVE PATCH v24: REAL ACCESSIBLE SEARCH + Radio + Multi-Select + Notice 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -202,14 +202,19 @@ pcall(function()
     end
 end)
 
--- 🔍 6. ACCESSIBLE SEARCH ENGINE (TalkBack Friendly)
+-- 🔍 6. 100% WORKING ACCESSIBLE SEARCH ENGINE
 if btnReaderSearch then
   btnReaderSearch.setOnClickListener(View.OnClickListener{onClick=function()
     local e = EditText(activity); e.setHint("सर्च करने के लिए शब्द लिखें...")
     AlertDialog.Builder(activity).setTitle("नोटिस में खोजें").setView(e).setPositiveButton("Find", function()
        local query = e.getText().toString()
        if #query > 0 then
-          local allText = noteEditor.getText().toString()
+          
+          -- 🚨 BUG FIX: यहाँ अब सही जगह (currentFullText) से टेक्स्ट उठाया जा रहा है
+          local allText = currentFullText
+          if allText == nil or #allText == 0 then 
+             allText = noteEditor.getText().toString() 
+          end
           if allText == nil or #allText == 0 then return end
           
           if isParaMode then 
@@ -221,12 +226,14 @@ if btnReaderSearch then
           local jQueryLower = JString.valueOf(query).toLowerCase()
           local qLen = jQueryLower.length()
           
-          -- 🚀 एक्सेसिबिलिटी (Accessibility) के लिए लाइनें अलग करना
+          -- 🚀 एक्सेसिबिलिटी (TalkBack) के लिए लाइनें अलग करना
           local foundLines = {}
+          local lineNum = 1
           for line in string.gmatch(allText, "[^\r\n]+") do
               if JString.valueOf(line).toLowerCase().contains(jQueryLower) then
-                  table.insert(foundLines, "📌 " .. line)
+                  table.insert(foundLines, "लाइन " .. lineNum .. ": " .. line)
               end
+              lineNum = lineNum + 1
           end
 
           local span = SpannableString(allText)
@@ -242,6 +249,11 @@ if btnReaderSearch then
           if count > 0 then 
               readerBody.setText(span)
               
+              -- 🗣️ 100% WORKING TALKBACK ANNOUNCEMENT (स्क्रीन रीडर बोलकर बताएगा)
+              local successMsg = query .. " शब्द कुल " .. count .. " जगह मिला है। रिज़ल्ट स्क्रीन पर खुल गए हैं।"
+              pcall(function() activity.getWindow().getDecorView().announceForAccessibility(successMsg) end)
+              Toast.makeText(activity, successMsg, 1).show()
+              
               -- 🌟 नेत्रहीन यूज़र्स के लिए अलग से लिस्ट वाला डायलॉग
               local lv = ListView(activity)
               local adp = ArrayAdapter(activity, android.R.layout.simple_list_item_1, foundLines)
@@ -254,7 +266,9 @@ if btnReaderSearch then
               .show()
               
           else 
-              Toast.makeText(activity, "यह शब्द नहीं मिला।", 0).show() 
+              local failMsg = query .. " शब्द यहाँ नहीं मिला।"
+              pcall(function() activity.getWindow().getDecorView().announceForAccessibility(failMsg) end)
+              Toast.makeText(activity, failMsg, 0).show() 
           end
        end
     end).setNegativeButton("कैंसिल", nil).show()
