@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v16: 24/7 LIVE RADIO + Multi-Select + Find Fix + Notice + TTS 🌟
+-- 🌟 LIVE PATCH v17: CLEAN RADIO MENU + Multi-Select + Find Fix + Notice + TTS 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -32,10 +32,10 @@ function controlAmbientAudio(url, title)
   end
 end
 
--- 🎧 2. ULTIMATE MEDITATION & RADIO MENU
+-- 🎧 2. ULTIMATE MEDITATION & RADIO MENU (Cleaned UI)
 function showAmbientMenu()
   local opts = {
-      "🧘 ध्यान संगीत 1 (GitHub)", "🧘 ध्यान संगीत 2 (GitHub)", "🧘 ध्यान संगीत 3 (GitHub)", 
+      "🧘 ध्यान संगीत 1", "🧘 ध्यान संगीत 2", "🧘 ध्यान संगीत 3", 
       "🌧️ बारिश की आवाज़", "🎵 लो-फाई बीट्स", "🎹 रिलैक्सिंग पियानो",
       "🌌 डीप फोकस रेडियो (24/7 Live)", "🪐 डीप स्पेस रेडियो (24/7 Live)", 
       "🐦 प्रकृति की आवाज़ (24/7 Live)", "🎻 क्लासिकल रेडियो (24/7 Live)",
