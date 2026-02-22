@@ -1,8 +1,10 @@
--- 🌟 LIVE PATCH v8: Meditation + TTS + Smart Notice Engine 🌟
+-- 🌟 LIVE PATCH v13: MULTI-SELECT + Meditation Loop + TTS + Smart Notice 🌟
 
 import "android.media.MediaPlayer"
+import "android.speech.tts.TextToSpeech"
+import "java.util.Locale"
 
--- 🔥 FORCE LOOP AUDIO PLAYER
+-- 🔥 1. FORCE LOOP AUDIO PLAYER (म्यूज़िक फिक्स)
 function controlAmbientAudio(url, title)
   if ambientPlayer then 
      pcall(function() ambientPlayer.stop() end)
@@ -25,15 +27,11 @@ function controlAmbientAudio(url, title)
   end
 end
 
+-- 🎧 2. MEDITATION MENU
 function showAmbientMenu()
   local opts = {
-      "🧘 ध्यान संगीत 1 (Meditation 1)", 
-      "🧘 ध्यान संगीत 2 (Meditation 2)", 
-      "🧘 ध्यान संगीत 3 (Meditation 3)", 
-      "🌧️ बारिश की आवाज़ (Rain Sounds)", 
-      "🎵 लो-फाई बीट्स (Lofi Study)", 
-      "🎹 रिलैक्सिंग पियानो (Relaxing Piano)", 
-      "⏹️ बंद करें (Stop)"
+      "🧘 ध्यान संगीत 1 (Meditation 1)", "🧘 ध्यान संगीत 2 (Meditation 2)", "🧘 ध्यान संगीत 3 (Meditation 3)", 
+      "🌧️ बारिश की आवाज़ (Rain Sounds)", "🎵 लो-फाई बीट्स (Lofi Study)", "🎹 रिलैक्सिंग पियानो (Relaxing Piano)", "⏹️ बंद करें (Stop)"
   }
   showNovaMenu("ध्यान और फोकस (Meditation)", opts, function(w)
     if w==0 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20(1).mp3", "Meditation 1")
@@ -46,16 +44,12 @@ function showAmbientMenu()
   end)
 end
 
-import "android.speech.tts.TextToSpeech"
-import "java.util.Locale"
+-- 🧰 3. SMART TEXT TOOLS (TTS & Text Cleaners)
 local tts_player = nil
-
 function openSmartTextCleaner()
   local text = noteEditor.getText().toString()
   if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
-  
   local opts = {"📞 Extract Phone Numbers", "🔗 Extract Links", "✂️ Remove Symbols", "🗑️ Remove Emojis", "✨ Auto-Format Article", "🗣️ Read Text Aloud (TTS)", "🔠 Convert to UPPERCASE", "🔡 Convert to lowercase"}
-  
   showNovaMenu("Smart Text Tools", opts, function(w)
     local jText = String(text)
     if w == 0 then
@@ -67,7 +61,6 @@ function openSmartTextCleaner()
     elseif w == 2 then noteEditor.setText(jText.replaceAll("[*#_~`|^]", "")); Toast.makeText(activity, "Symbols removed!", 0).show()
     elseif w == 3 then noteEditor.setText(jText.replaceAll("[\\x{1F300}-\\x{1F6FF}|\\x{2600}-\\x{26FF}|\\x{2700}-\\x{27BF}|\\x{1F900}-\\x{1F9FF}|\\x{1F1E6}-\\x{1F1FF}]", "")); Toast.makeText(activity, "Emojis removed!", 0).show()
     elseif w == 4 then local ft = jText.replaceAll(" +", " "); ft = ft.replaceAll("([.,])([A-Za-z\\u0900-\\u097F])", "$1 $2"); noteEditor.setText(ft.trim()); Toast.makeText(activity, "Formatted beautifully!", 0).show() 
-    
     elseif w == 5 then 
         local ttsOpts = {"🇮🇳 Read in Hindi", "🇬🇧 Read in English", "⚙️ Voice Settings (Phone)", "⏹️ Stop Reading"}
         showNovaMenu("TTS Options", ttsOpts, function(tIdx)
@@ -93,25 +86,22 @@ function openSmartTextCleaner()
   end)
 end
 
--- 📢 NEW: SMART NOTICE ENGINE
+-- 🚨 4. AUTO-POPUP NOTICE ENGINE (गिटहब से सूचना)
 function checkGlobalNotice()
-   local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt"
+   local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time())
    local localNoticeFile = activity.getExternalFilesDir(nil).toString() .. "/last_notice.txt"
 
    Http.get(noticeUrl, function(code, content)
       if code == 200 and content and #content > 2 then
-         -- पुराना नोटिस पढें ताकि बार-बार एक ही नोटिस न दिखे
          local f = io.open(localNoticeFile, "r")
          local lastNotice = ""
          if f then lastNotice = f:read("*a"); f:close() end
 
-         -- अगर नोटिस नया है, तभी दिखाएं
          if content ~= lastNotice then
             AlertDialog.Builder(activity)
             .setTitle("📢 Nova Pad सूचना")
             .setMessage(content)
             .setPositiveButton("ठीक है", {onClick=function(d)
-                -- देखने के बाद सेव कर लें ताकि अगली बार न आए
                 local fw = io.open(localNoticeFile, "w")
                 if fw then fw:write(content); fw:close() end
                 d.dismiss()
@@ -122,5 +112,112 @@ function checkGlobalNotice()
       end
    end)
 end
-
 pcall(checkGlobalNotice)
+
+-- ✅ 5. NEW: MULTI-SELECT ENGINE (एक साथ डिलीट या मूव करें)
+function showMultiSelectDialog()
+    local rootDir = activity.getExternalFilesDir(nil).toString() .. "/"
+    local binDir = rootDir .. "RecycleBin/"
+
+    if currentPath == rootDir then
+        Toast.makeText(activity, "कृपया पहले कोई फोल्डर (Category) खोलें!", 0).show()
+        return
+    end
+
+    local files = File(currentPath).listFiles()
+    local fileNames = {}
+    if files then
+        for i=0, #files-1 do
+            local n = files[i].getName()
+            if n:find(".txt") then table.insert(fileNames, n) end
+        end
+    end
+
+    if #fileNames == 0 then
+        Toast.makeText(activity, "इस फोल्डर में कोई नोट्स नहीं हैं!", 0).show()
+        return
+    end
+
+    local lv = ListView(activity)
+    lv.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE)
+    -- चेकबॉक्स वाले लेआउट का इस्तेमाल
+    local adp = ArrayAdapter(activity, android.R.layout.simple_list_item_multiple_choice, fileNames)
+    lv.setAdapter(adp)
+
+    local dlg = AlertDialog.Builder(activity)
+    dlg.setTitle("✅ मल्टी-सेलेक्ट (Multi-Select)")
+    dlg.setView(lv)
+
+    dlg.setPositiveButton("🗑️ डिलीट करें", {onClick=function(d)
+        local checked = lv.getCheckedItemPositions()
+        local count = 0
+        for i=0, #fileNames-1 do
+            if checked.get(i) then
+                local fName = fileNames[i+1]
+                os.rename(currentPath.."/"..fName, binDir..fName)
+                count = count + 1
+            end
+        end
+        if count > 0 then
+            Toast.makeText(activity, count .. " नोट्स डिलीट हो गए!", 0).show()
+            if loadFileList then loadFileList(false) end
+        else
+            Toast.makeText(activity, "कोई नोट सेलेक्ट नहीं किया!", 0).show()
+        end
+    end})
+
+    dlg.setNeutralButton("📁 फोल्डर बदलें (Move)", {onClick=function(d)
+        local checked = lv.getCheckedItemPositions()
+        local selectedFiles = {}
+        for i=0, #fileNames-1 do
+            if checked.get(i) then table.insert(selectedFiles, fileNames[i+1]) end
+        end
+
+        if #selectedFiles == 0 then
+            Toast.makeText(activity, "कोई नोट सेलेक्ट नहीं किया!", 0).show()
+            return
+        end
+
+        local cats = {}
+        local allFiles = File(rootDir).listFiles()
+        if allFiles then
+            for i=0, #allFiles-1 do
+                if allFiles[i].isDirectory() then
+                    local n = allFiles[i].getName()
+                    if n ~= "RecycleBin" and not n:find("^%.") then table.insert(cats, n) end
+                end
+            end
+        end
+
+        showNovaMenu("कहाँ Move करना है?", cats, function(w)
+            local destFolder = rootDir .. cats[w+1] .. "/"
+            for _, fName in ipairs(selectedFiles) do
+                local src = currentPath.."/"..fName
+                local dst = destFolder..fName
+                local f1 = io.open(src, "r")
+                if f1 then
+                    local c = f1:read("*a")
+                    f1:close()
+                    local f2 = io.open(dst, "w+")
+                    if f2 then f2:write(c); f2:close(); os.remove(src) end
+                end
+            end
+            Toast.makeText(activity, #selectedFiles.." नोट्स Move हो गए!", 0).show()
+            if loadFileList then loadFileList(false) end
+        end)
+    end})
+
+    dlg.setNegativeButton("कैंसिल", nil)
+    dlg.show()
+end
+
+-- नया "✅ Multi-Select" बटन UI में अपने आप जोड़ें
+if btnImport and not btnMultiSelect then
+   btnMultiSelect = Button(activity)
+   btnMultiSelect.text = "✅ Multi-Select"
+   btnMultiSelect.layout_weight = 1
+   btnMultiSelect.onClick = function() showMultiSelectDialog() end
+   
+   local parentLayout = btnImport.getParent()
+   parentLayout.addView(btnMultiSelect)
+end
