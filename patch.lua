@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v18: HTTPS RADIO FIX + Clean Menu + Multi-Select + Notice 🌟
+-- 🌟 LIVE PATCH v19: FIND CRASH FIX + Bird Radio HTTPS + Multi-Select + Notice 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -51,13 +51,14 @@ function showAmbientMenu()
     -- 📡 100% SECURE HTTPS LIVE RADIO STATIONS
     elseif w==6 then controlAmbientAudio("https://ice1.somafm.com/dronezone-128-mp3", "Deep Focus Radio")
     elseif w==7 then controlAmbientAudio("https://ice1.somafm.com/deepspaceone-128-mp3", "Deep Space Radio")
-    elseif w==8 then controlAmbientAudio("https://actions.google.com/sounds/v1/animals/birds_in_forest.ogg", "Nature Sounds")
+    -- 🐦 BIRD/NATURE RADIO FIX (Birdsong.fm 100% Secure & Working)
+    elseif w==8 then controlAmbientAudio("https://streaming.radio.co/s5c5da6a36/listen", "Nature Sounds")
     elseif w==9 then controlAmbientAudio("https://stream.srg-ssr.ch/m/rsc_de/mp3_128", "Classic Radio")
     elseif w==10 then controlAmbientAudio(nil) end
   end)
 end
 
--- 🧰 3. SMART TEXT TOOLS (TTS)
+-- 🧰 3. SMART TEXT TOOLS
 local tts_player = nil
 function openSmartTextCleaner()
   local text = noteEditor.getText().toString()
@@ -236,27 +237,33 @@ pcall(function()
     end
 end)
 
--- 🔍 6. SEARCH BUG FIX (Hindi Unicode Support)
+-- 🔍 6. SEARCH CRASH FIX (Null Pointer Removed)
 if btnReaderSearch then
   btnReaderSearch.setOnClickListener(View.OnClickListener{onClick=function()
     local e = EditText(activity); e.setHint("सर्च करने के लिए शब्द लिखें...")
     AlertDialog.Builder(activity).setTitle("नोटिस में खोजें").setView(e).setPositiveButton("Find", function()
        local query = e.getText().toString()
        if #query > 0 then
+          -- अब हम सीधा एडिटर से 100% पक्का टेक्स्ट ले रहे हैं, ताकि null न आए
+          local allText = noteEditor.getText().toString()
+          
           if isParaMode then 
               isParaMode = false; spinReadMode.setSelection(0); updateReaderView() 
-              Toast.makeText(activity, "हाईलाइट करने के लिए फुल टेक्स्ट मोड में बदला गया", 1).show()
+              Toast.makeText(activity, "सर्च के लिए फुल टेक्स्ट मोड चालू किया गया", 1).show()
           end
-          local jText = String(currentFullText).toLowerCase()
+          
+          local jText = String(allText).toLowerCase()
           local jQuery = String(query).toLowerCase()
-          local span = SpannableString(currentFullText)
+          local span = SpannableString(allText)
           local count = 0
           local startPos = jText.indexOf(jQuery)
+          
           while startPos >= 0 do
              count = count + 1
              span.setSpan(BackgroundColorSpan(0xFFFFFF00), startPos, startPos + jQuery.length(), 33)
              startPos = jText.indexOf(jQuery, startPos + jQuery.length())
           end
+          
           if count > 0 then 
               readerBody.setText(span)
               Toast.makeText(activity, "कुल " .. count .. " जगह मिला! (पीले रंग से हाईलाइट किया गया)", 1).show()
