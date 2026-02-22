@@ -1,10 +1,12 @@
--- 🌟 LIVE PATCH v13: MULTI-SELECT + Meditation Loop + TTS + Smart Notice 🌟
+-- 🌟 LIVE PATCH v14: FIXED MULTI-SELECT UI + Meditation + TTS + Notice 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
 import "java.util.Locale"
+import "android.widget.Button"
+import "android.view.View"
 
--- 🔥 1. FORCE LOOP AUDIO PLAYER (म्यूज़िक फिक्स)
+-- 🔥 1. FORCE LOOP AUDIO PLAYER
 function controlAmbientAudio(url, title)
   if ambientPlayer then 
      pcall(function() ambientPlayer.stop() end)
@@ -44,7 +46,7 @@ function showAmbientMenu()
   end)
 end
 
--- 🧰 3. SMART TEXT TOOLS (TTS & Text Cleaners)
+-- 🧰 3. SMART TEXT TOOLS
 local tts_player = nil
 function openSmartTextCleaner()
   local text = noteEditor.getText().toString()
@@ -86,7 +88,7 @@ function openSmartTextCleaner()
   end)
 end
 
--- 🚨 4. AUTO-POPUP NOTICE ENGINE (गिटहब से सूचना)
+-- 🚨 4. AUTO-POPUP NOTICE ENGINE
 function checkGlobalNotice()
    local noticeUrl = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/notice.txt?t=" .. tostring(os.time())
    local localNoticeFile = activity.getExternalFilesDir(nil).toString() .. "/last_notice.txt"
@@ -114,7 +116,7 @@ function checkGlobalNotice()
 end
 pcall(checkGlobalNotice)
 
--- ✅ 5. NEW: MULTI-SELECT ENGINE (एक साथ डिलीट या मूव करें)
+-- ✅ 5. MULTI-SELECT ENGINE LOGIC
 function showMultiSelectDialog()
     local rootDir = activity.getExternalFilesDir(nil).toString() .. "/"
     local binDir = rootDir .. "RecycleBin/"
@@ -140,7 +142,6 @@ function showMultiSelectDialog()
 
     local lv = ListView(activity)
     lv.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE)
-    -- चेकबॉक्स वाले लेआउट का इस्तेमाल
     local adp = ArrayAdapter(activity, android.R.layout.simple_list_item_multiple_choice, fileNames)
     lv.setAdapter(adp)
 
@@ -173,10 +174,7 @@ function showMultiSelectDialog()
             if checked.get(i) then table.insert(selectedFiles, fileNames[i+1]) end
         end
 
-        if #selectedFiles == 0 then
-            Toast.makeText(activity, "कोई नोट सेलेक्ट नहीं किया!", 0).show()
-            return
-        end
+        if #selectedFiles == 0 then return end
 
         local cats = {}
         local allFiles = File(rootDir).listFiles()
@@ -196,8 +194,7 @@ function showMultiSelectDialog()
                 local dst = destFolder..fName
                 local f1 = io.open(src, "r")
                 if f1 then
-                    local c = f1:read("*a")
-                    f1:close()
+                    local c = f1:read("*a"); f1:close()
                     local f2 = io.open(dst, "w+")
                     if f2 then f2:write(c); f2:close(); os.remove(src) end
                 end
@@ -211,13 +208,27 @@ function showMultiSelectDialog()
     dlg.show()
 end
 
--- नया "✅ Multi-Select" बटन UI में अपने आप जोड़ें
-if btnImport and not btnMultiSelect then
-   btnMultiSelect = Button(activity)
-   btnMultiSelect.text = "✅ Multi-Select"
-   btnMultiSelect.layout_weight = 1
-   btnMultiSelect.onClick = function() showMultiSelectDialog() end
-   
-   local parentLayout = btnImport.getParent()
-   parentLayout.addView(btnMultiSelect)
-end
+-- 🚀 6. FORCE INJECT BUTTON INTO UI
+pcall(function()
+    if btnImport then
+        local parent = btnImport.getParent()
+        local isAdded = false
+        
+        -- चेक करें कि क्या बटन पहले से जुड़ा हुआ है?
+        for i=0, parent.getChildCount()-1 do
+            local child = parent.getChildAt(i)
+            if child.getText and child.getText() == "✅ Multi-Select" then
+                isAdded = true
+            end
+        end
+        
+        -- अगर नहीं जुड़ा है, तो नया बटन डालें
+        if not isAdded then
+            local newBtn = Button(activity)
+            newBtn.setText("✅ Multi-Select")
+            newBtn.setLayoutParams(btnImport.getLayoutParams()) -- Import बटन की हूबहू कॉपी करेगा
+            newBtn.setOnClickListener(View.OnClickListener{onClick=function() showMultiSelectDialog() end})
+            parent.addView(newBtn)
+        end
+    end
+end)
