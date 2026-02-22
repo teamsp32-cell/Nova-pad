@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v19: FIND CRASH FIX + Bird Radio HTTPS + Multi-Select + Notice 🌟
+-- 🌟 LIVE PATCH v21: BULLETPROOF GITHUB BIRDS + Radio + Multi-Select + Notice 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -8,8 +8,6 @@ import "android.view.View"
 import "android.text.SpannableString"
 import "android.text.style.BackgroundColorSpan"
 import "java.lang.String"
-import "java.text.Normalizer"
-import "java.text.Normalizer$Form"
 
 -- 🔥 1. FORCE LOOP & STREAM AUDIO PLAYER
 function controlAmbientAudio(url, title)
@@ -40,7 +38,7 @@ function showAmbientMenu()
       "🧘 ध्यान संगीत 1", "🧘 ध्यान संगीत 2", "🧘 ध्यान संगीत 3", 
       "🌧️ बारिश की आवाज़", "🎵 लो-फाई बीट्स", "🎹 रिलैक्सिंग पियानो",
       "🌌 डीप फोकस रेडियो (24/7 Live)", "🪐 डीप स्पेस रेडियो (24/7 Live)", 
-      "🐦 प्रकृति की आवाज़ (24/7 Live)", "🎻 क्लासिकल रेडियो (24/7 Live)",
+      "🐦 प्रकृति की आवाज़ (GitHub)", "🎻 क्लासिकल रेडियो (24/7 Live)",
       "⏹️ बंद करें (Stop)"
   }
   showNovaMenu("ध्यान और फोकस (Meditation)", opts, function(w)
@@ -53,8 +51,8 @@ function showAmbientMenu()
     -- 📡 100% SECURE HTTPS LIVE RADIO STATIONS
     elseif w==6 then controlAmbientAudio("https://ice1.somafm.com/dronezone-128-mp3", "Deep Focus Radio")
     elseif w==7 then controlAmbientAudio("https://ice1.somafm.com/deepspaceone-128-mp3", "Deep Space Radio")
-    -- 🐦 BIRD/NATURE RADIO FIX (Birdsong.fm 100% Secure & Working)
-    elseif w==8 then controlAmbientAudio("https://streaming.radio.co/s5c5da6a36/listen", "Nature Sounds")
+    -- 🐦 BIRD/NATURE RADIO FIX (Now using your ultra-reliable GitHub)
+    elseif w==8 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/birds.mp3", "Nature Sounds")
     elseif w==9 then controlAmbientAudio("https://stream.srg-ssr.ch/m/rsc_de/mp3_128", "Classic Radio")
     elseif w==10 then controlAmbientAudio(nil) end
   end)
@@ -239,14 +237,13 @@ pcall(function()
     end
 end)
 
--- 🔍 6. SEARCH CRASH FIX (Null Pointer Removed)
+-- 🔍 6. BULLETPROOF SEARCH CRASH FIX (Lua/Java Coercion Removed)
 if btnReaderSearch then
   btnReaderSearch.setOnClickListener(View.OnClickListener{onClick=function()
     local e = EditText(activity); e.setHint("सर्च करने के लिए शब्द लिखें...")
     AlertDialog.Builder(activity).setTitle("नोटिस में खोजें").setView(e).setPositiveButton("Find", function()
        local query = e.getText().toString()
        if #query > 0 then
-          -- अब हम सीधा एडिटर से 100% पक्का टेक्स्ट ले रहे हैं, ताकि null न आए
           local allText = noteEditor.getText().toString()
           
           if isParaMode then 
@@ -254,16 +251,18 @@ if btnReaderSearch then
               Toast.makeText(activity, "सर्च के लिए फुल टेक्स्ट मोड चालू किया गया", 1).show()
           end
           
-          local jText = String(allText).toLowerCase()
-          local jQuery = String(query).toLowerCase()
+          local jTextLower = String( String(allText):toLowerCase() )
+          local jQueryLower = String( String(query):toLowerCase() )
+          local qLen = jQueryLower:length()
+          
           local span = SpannableString(allText)
           local count = 0
-          local startPos = jText.indexOf(jQuery)
+          local startPos = jTextLower:indexOf(jQueryLower:toString())
           
           while startPos >= 0 do
              count = count + 1
-             span.setSpan(BackgroundColorSpan(0xFFFFFF00), startPos, startPos + jQuery.length(), 33)
-             startPos = jText.indexOf(jQuery, startPos + jQuery.length())
+             span:setSpan(BackgroundColorSpan(0xFFFFFF00), startPos, startPos + qLen, 33)
+             startPos = jTextLower:indexOf(jQueryLower:toString(), startPos + qLen)
           end
           
           if count > 0 then 
@@ -275,48 +274,4 @@ if btnReaderSearch then
        end
     end).setNegativeButton("कैंसिल", nil).show()
   end})
-end
-
--- 🎯 7. ADVANCED HINDI/UNICODE SEARCH FUNCTION (The Ultimate Fix)
-function searchHindiWord(queryText)
-    local success, errorMessage = pcall(function()
-        local rawText = noteEditor.getText().toString()
-        local rawQuery = tostring(queryText)
-        
-        if rawText == nil or rawText == "" then
-            Toast.makeText(activity, "लेख खाली है।", 0).show()
-            return
-        end
-        if rawQuery == nil or rawQuery == "" then
-            Toast.makeText(activity, "खोजने के लिए शब्द नहीं है।", 0).show()
-            return
-        end
-        
-        -- यूनिकोड को एक समान बनाने का अचूक तरीका
-        local normalizedText = Normalizer.normalize(rawText, Form.NFC)
-        local normalizedQuery = Normalizer.normalize(rawQuery, Form.NFC)
-        
-        local javaText = String(normalizedText)
-        local javaQuery = String(normalizedQuery)
-        
-        -- अदृश्य अक्षरों को साफ करना
-        javaQuery = javaQuery.replaceAll("[\u200B\uFEFF\u200C\u200D]", "").trim()
-        
-        local startIndex = javaText.indexOf(javaQuery)
-        
-        if startIndex ~= -1 then
-            local wordLength = javaQuery.length()
-            local endIndex = startIndex + wordLength
-            
-            noteEditor.setSelection(startIndex, endIndex)
-            noteEditor.requestFocus()
-            Toast.makeText(activity, "शब्द मिल गया और सेलेक्ट हो गया!", 0).show()
-        else
-            Toast.makeText(activity, "नो टेक्स्ट फाउंड (शब्द नहीं मिला)।", 0).show()
-        end
-    end)
-
-    if not success then
-        Toast.makeText(activity, "सर्च एरर: " .. tostring(errorMessage), 1).show()
-    end
 end
