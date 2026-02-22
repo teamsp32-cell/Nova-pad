@@ -1,44 +1,33 @@
-function searchHindiWord(query)
-    local success, errorMessage = pcall(function()
-        
-        -- तरीका बदला गया: अब यह एकदम शुद्ध स्ट्रिंग निकालेगा
-        local text = noteEditor.getText().toString()
-        
-        if text == nil or text == "" then
-            print("टेक्स्ट बॉक्स खाली है।")
-            return
-        end
-        if query == nil or query == "" then
-            print("खोजने के लिए कोई शब्द नहीं दिया गया।")
-            return
-        end
-
-        -- सर्च करने वाले शब्द के आगे-पीछे से फालतू स्पेस हटा रहे हैं
-        local cleanQuery = query:match("^%s*(.-)%s*$")
-        
-        -- स्क्रीन पर देखने के लिए कि असल में क्या खोजा जा रहा है (ब्रैकेट के अंदर)
-        print("हम यह शब्द खोज रहे हैं: [" .. cleanQuery .. "]")
-
-        local String = luajava.bindClass("java.lang.String")
-        local javaText = String(text)
-        local javaQuery = String(cleanQuery)
-
-        local startIndex = javaText:indexOf(javaQuery)
-
-        if startIndex ~= -1 then
-            local wordLength = javaQuery:length()
-            local endIndex = startIndex + wordLength
-            
-            noteEditor.setSelection(startIndex, endIndex)
-            noteEditor.requestFocus()
-            print("शब्द मिल गया और सेलेक्ट हो गया!")
-        else
-            print("शब्द मौजूद है पर मैच नहीं हुआ।")
-        end
-        
-    end)
-
-    if not success then
-        print("सर्च में यह एरर आया: " .. tostring(errorMessage))
-    end
+-- 🌟 LIVE PATCH v19: FIND CRASH FIX + Bird Radio HTTPS + Multi-Select + Notice 🌟
+import "android.media.MediaPlayer"
+import "android.speech.tts.TextToSpeech"
+import "java.util.Locale"
+import "android.widget.Button"
+import "android.view.View"
+import "android.text.SpannableString"
+import "android.text.style.BackgroundColorSpan"
+import "java.lang.String"
+-- 🔥 1. FORCE LOOP & STREAM AUDIO PLAYER
+function controlAmbientAudio(url, title)
+  if ambientPlayer then 
+     pcall(function() ambientPlayer.stop() end)
+     pcall(function() ambientPlayer.release() end)
+     ambientPlayer = nil 
+  end
+  if url then
+    Toast.makeText(activity, "Loading "..title.." ⏳", 0).show()
+    ambientPlayer = MediaPlayer()
+    ambientPlayer.setDataSource(url)
+    ambientPlayer.setLooping(true) 
+    ambientPlayer.setOnCompletionListener(MediaPlayer.OnCompletionListener{
+        onCompletion=function(mp) mp.seekTo(0); mp.start() end
+    })
+    ambientPlayer.prepareAsync()
+    ambientPlayer.setOnPreparedListener(MediaPlayer.OnPreparedListener{onPrepared=function(mp) mp.start(); Toast.makeText(activity, "Playing "..title.." 🎶", 0).show() end})
+    ambientPlayer.setOnErrorListener(MediaPlayer.OnErrorListener{onError=function(mp, w, e) Toast.makeText(activity, "Stream failed. Link error!", 0).show(); return true end})
+  else 
+    Toast.makeText(activity, "Music Stopped ⏹️", 0).show() 
+  end
 end
+-- 🎧 2. ULTIMATE MEDITATION & RADIO MENU (100% HTTPS Secure)
+function showAmbientMenu()
