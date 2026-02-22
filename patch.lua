@@ -1,4 +1,4 @@
--- 🌟 LIVE PATCH v15: FIND CRASH FIX + MULTI-SELECT + Notice + Meditation 🌟
+-- 🌟 LIVE PATCH v16: 24/7 LIVE RADIO + Multi-Select + Find Fix + Notice + TTS 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
@@ -9,7 +9,7 @@ import "android.text.SpannableString"
 import "android.text.style.BackgroundColorSpan"
 import "java.lang.String"
 
--- 🔥 1. FORCE LOOP AUDIO PLAYER
+-- 🔥 1. FORCE LOOP & STREAM AUDIO PLAYER
 function controlAmbientAudio(url, title)
   if ambientPlayer then 
      pcall(function() ambientPlayer.stop() end)
@@ -32,11 +32,14 @@ function controlAmbientAudio(url, title)
   end
 end
 
--- 🎧 2. MEDITATION MENU
+-- 🎧 2. ULTIMATE MEDITATION & RADIO MENU
 function showAmbientMenu()
   local opts = {
-      "🧘 ध्यान संगीत 1 (Meditation 1)", "🧘 ध्यान संगीत 2 (Meditation 2)", "🧘 ध्यान संगीत 3 (Meditation 3)", 
-      "🌧️ बारिश की आवाज़ (Rain Sounds)", "🎵 लो-फाई बीट्स (Lofi Study)", "🎹 रिलैक्सिंग पियानो (Relaxing Piano)", "⏹️ बंद करें (Stop)"
+      "🧘 ध्यान संगीत 1 (GitHub)", "🧘 ध्यान संगीत 2 (GitHub)", "🧘 ध्यान संगीत 3 (GitHub)", 
+      "🌧️ बारिश की आवाज़", "🎵 लो-फाई बीट्स", "🎹 रिलैक्सिंग पियानो",
+      "🌌 डीप फोकस रेडियो (24/7 Live)", "🪐 डीप स्पेस रेडियो (24/7 Live)", 
+      "🐦 प्रकृति की आवाज़ (24/7 Live)", "🎻 क्लासिकल रेडियो (24/7 Live)",
+      "⏹️ बंद करें (Stop)"
   }
   showNovaMenu("ध्यान और फोकस (Meditation)", opts, function(w)
     if w==0 then controlAmbientAudio("https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20(1).mp3", "Meditation 1")
@@ -45,11 +48,16 @@ function showAmbientMenu()
     elseif w==3 then controlAmbientAudio("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Rain Sounds")
     elseif w==4 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio17.mp3", "Lofi Beats")
     elseif w==5 then controlAmbientAudio("https://streams.ilovemusic.de/iloveradio18.mp3", "Relaxing Piano")
-    elseif w==6 then controlAmbientAudio(nil) end
+    -- 📡 LIVE RADIO STATIONS
+    elseif w==6 then controlAmbientAudio("http://ice1.somafm.com/dronezone-128-mp3", "Deep Focus Radio")
+    elseif w==7 then controlAmbientAudio("http://ice1.somafm.com/deepspaceone-128-mp3", "Deep Space Radio")
+    elseif w==8 then controlAmbientAudio("http://streaming.radio.co/s5c5da6a36/listen", "Nature Sounds")
+    elseif w==9 then controlAmbientAudio("http://174.36.206.197:8000/stream", "Classic Radio")
+    elseif w==10 then controlAmbientAudio(nil) end
   end)
 end
 
--- 🧰 3. SMART TEXT TOOLS
+-- 🧰 3. SMART TEXT TOOLS (TTS)
 local tts_player = nil
 function openSmartTextCleaner()
   local text = noteEditor.getText().toString()
@@ -235,25 +243,20 @@ if btnReaderSearch then
     AlertDialog.Builder(activity).setTitle("नोटिस में खोजें").setView(e).setPositiveButton("Find", function()
        local query = e.getText().toString()
        if #query > 0 then
-          -- ऑटोमैटिक फुल टेक्स्ट मोड में स्विच करें और यूज़र को बताएं
           if isParaMode then 
               isParaMode = false; spinReadMode.setSelection(0); updateReaderView() 
               Toast.makeText(activity, "हाईलाइट करने के लिए फुल टेक्स्ट मोड में बदला गया", 1).show()
           end
-          
-          -- Java String का इस्तेमाल (ताकि हिंदी के अक्षर बाइट्स में क्रैश न करें)
           local jText = String(currentFullText).toLowerCase()
           local jQuery = String(query).toLowerCase()
           local span = SpannableString(currentFullText)
           local count = 0
           local startPos = jText.indexOf(jQuery)
-          
           while startPos >= 0 do
              count = count + 1
              span.setSpan(BackgroundColorSpan(0xFFFFFF00), startPos, startPos + jQuery.length(), 33)
              startPos = jText.indexOf(jQuery, startPos + jQuery.length())
           end
-          
           if count > 0 then 
               readerBody.setText(span)
               Toast.makeText(activity, "कुल " .. count .. " जगह मिला! (पीले रंग से हाईलाइट किया गया)", 1).show()
