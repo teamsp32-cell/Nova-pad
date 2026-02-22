@@ -1,10 +1,13 @@
--- 🌟 LIVE PATCH v14: FIXED MULTI-SELECT UI + Meditation + TTS + Notice 🌟
+-- 🌟 LIVE PATCH v15: FIND CRASH FIX + MULTI-SELECT + Notice + Meditation 🌟
 
 import "android.media.MediaPlayer"
 import "android.speech.tts.TextToSpeech"
 import "java.util.Locale"
 import "android.widget.Button"
 import "android.view.View"
+import "android.text.SpannableString"
+import "android.text.style.BackgroundColorSpan"
+import "java.lang.String"
 
 -- 🔥 1. FORCE LOOP AUDIO PLAYER
 function controlAmbientAudio(url, title)
@@ -173,7 +176,6 @@ function showMultiSelectDialog()
         for i=0, #fileNames-1 do
             if checked.get(i) then table.insert(selectedFiles, fileNames[i+1]) end
         end
-
         if #selectedFiles == 0 then return end
 
         local cats = {}
@@ -208,27 +210,57 @@ function showMultiSelectDialog()
     dlg.show()
 end
 
--- 🚀 6. FORCE INJECT BUTTON INTO UI
 pcall(function()
     if btnImport then
         local parent = btnImport.getParent()
         local isAdded = false
-        
-        -- चेक करें कि क्या बटन पहले से जुड़ा हुआ है?
         for i=0, parent.getChildCount()-1 do
             local child = parent.getChildAt(i)
-            if child.getText and child.getText() == "✅ Multi-Select" then
-                isAdded = true
-            end
+            if child.getText and child.getText() == "✅ Multi-Select" then isAdded = true end
         end
-        
-        -- अगर नहीं जुड़ा है, तो नया बटन डालें
         if not isAdded then
             local newBtn = Button(activity)
             newBtn.setText("✅ Multi-Select")
-            newBtn.setLayoutParams(btnImport.getLayoutParams()) -- Import बटन की हूबहू कॉपी करेगा
+            newBtn.setLayoutParams(btnImport.getLayoutParams()) 
             newBtn.setOnClickListener(View.OnClickListener{onClick=function() showMultiSelectDialog() end})
             parent.addView(newBtn)
         end
     end
 end)
+
+-- 🔍 6. SEARCH BUG FIX (Hindi Unicode Support)
+if btnReaderSearch then
+  btnReaderSearch.setOnClickListener(View.OnClickListener{onClick=function()
+    local e = EditText(activity); e.setHint("सर्च करने के लिए शब्द लिखें...")
+    AlertDialog.Builder(activity).setTitle("नोटिस में खोजें").setView(e).setPositiveButton("Find", function()
+       local query = e.getText().toString()
+       if #query > 0 then
+          -- ऑटोमैटिक फुल टेक्स्ट मोड में स्विच करें और यूज़र को बताएं
+          if isParaMode then 
+              isParaMode = false; spinReadMode.setSelection(0); updateReaderView() 
+              Toast.makeText(activity, "हाईलाइट करने के लिए फुल टेक्स्ट मोड में बदला गया", 1).show()
+          end
+          
+          -- Java String का इस्तेमाल (ताकि हिंदी के अक्षर बाइट्स में क्रैश न करें)
+          local jText = String(currentFullText).toLowerCase()
+          local jQuery = String(query).toLowerCase()
+          local span = SpannableString(currentFullText)
+          local count = 0
+          local startPos = jText.indexOf(jQuery)
+          
+          while startPos >= 0 do
+             count = count + 1
+             span.setSpan(BackgroundColorSpan(0xFFFFFF00), startPos, startPos + jQuery.length(), 33)
+             startPos = jText.indexOf(jQuery, startPos + jQuery.length())
+          end
+          
+          if count > 0 then 
+              readerBody.setText(span)
+              Toast.makeText(activity, "कुल " .. count .. " जगह मिला! (पीले रंग से हाईलाइट किया गया)", 1).show()
+          else 
+              Toast.makeText(activity, "यह शब्द नहीं मिला।", 0).show() 
+          end
+       end
+    end).setNegativeButton("कैंसिल", nil).show()
+  end})
+end
