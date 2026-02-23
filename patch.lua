@@ -1,5 +1,5 @@
 -- Nova Pad v2.9 - Live Patch (OTA)
--- Safe TTS Click Handler & Copyable Error Dialog
+-- Safe TTS Click Handler & toString() Fix
 
 pcall(function()
     local patchActivity = activity
@@ -24,7 +24,6 @@ pcall(function()
     btnReaderTranslate.setText(LP("Listen 🗣️", "सुनें 🗣️"))
     btnReaderTranslate.setTextColor(0xFF4CAF50)
 
-    -- वापस ओरिजिनल सेफ क्लिक लिसनर पर जा रहे हैं
     btnReaderTranslate.setOnClickListener(View.OnClickListener{
         onClick = function()
             local ok, err = pcall(function()
@@ -39,12 +38,13 @@ pcall(function()
                         end
                     end
                 elseif readerBody then
-                    textToRead = readerBody.getText().toString()
+                    -- 🔥 FIX: .toString() हटा दिया, अब लुआ का सेफ tostring() यूज़ कर रहे हैं
+                    textToRead = tostring(readerBody.getText() or "")
                 end
                 
                 -- बैकअप
                 if textToRead == nil or textToRead == "" then
-                    if noteEditor then textToRead = noteEditor.getText().toString() end
+                    if noteEditor then textToRead = tostring(noteEditor.getText() or "") end
                 end
                 
                 if textToRead == nil or textToRead == "" then
@@ -87,11 +87,11 @@ pcall(function()
                 end)
             end)
             
-            -- 🔥 कॉपी करने वाला डायलॉग (अगर क्रैश हुआ तो)
+            -- अगर फिर भी क्रैश हुआ तो डायलॉग बॉक्स आएगा
             if not ok then
                 local errInput = EditText(patchActivity)
                 errInput.setText(tostring(err))
-                errInput.setTextIsSelectable(true) -- इससे टेक्स्ट कॉपी हो सकेगा
+                errInput.setTextIsSelectable(true)
                 AlertDialog.Builder(patchActivity)
                 .setTitle(LP("Patch Error (Copy this)", "पैच एरर (इसे कॉपी करें)"))
                 .setView(errInput)
