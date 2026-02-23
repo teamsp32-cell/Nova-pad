@@ -1,5 +1,5 @@
 -- Nova Pad v2.9 - Live Patch (OTA)
--- Ultimate Triple-Trap Error Catcher & TTS Fix
+-- Ultimate Triple-Trap Error Catcher & Locale Fix
 
 pcall(function()
     local rootDirPatch = activity.getExternalFilesDir(nil).toString() .. "/"
@@ -15,7 +15,7 @@ pcall(function()
     end
     local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
-    -- 🔥 यह है हमारा ग्लोबल एरर कैचर बॉक्स 🔥
+    -- 🔥 यह है हमारा परमानेंट ग्लोबल एरर कैचर बॉक्स (हमेशा रहेगा) 🔥
     local function showErrorBox(title, msg)
         local errInput = EditText(activity)
         errInput.setText(tostring(msg))
@@ -65,7 +65,6 @@ pcall(function()
                 }
                 
                 showNovaMenu(LP("TTS Options", "TTS विकल्प"), ttsOpts, function(tIdx)
-                    -- 🔥 जाल नंबर 2: मेनू के अंदर 🔥
                     local ok2, err2 = pcall(function()
                         if tIdx == 2 then 
                             activity.startActivity(Intent("com.android.settings.TTS_SETTINGS"))
@@ -75,13 +74,14 @@ pcall(function()
                         else
                             Toast.makeText(activity, LP("Starting Reader... 🗣️", "रीडर शुरू हो रहा है... 🗣️"), 0).show()
                             
-                            local loc = (tIdx == 1) and java.util.Locale("en", "US") or java.util.Locale("hi", "IN")
+                            -- 🔥 FIX: 'java' एरर का पक्का इलाज 🔥
+                            import "java.util.Locale"
+                            local loc = (tIdx == 1) and Locale("en", "US") or Locale("hi", "IN")
                             
                             if _G.reader_tts_player == nil then 
                                 import "android.speech.tts.TextToSpeech"
                                 _G.reader_tts_player = TextToSpeech(activity, TextToSpeech.OnInitListener{
                                     onInit = function(status) 
-                                        -- 🔥 जाल नंबर 3: इंजन के अंदर 🔥
                                         local ok3, err3 = pcall(function()
                                             if status == 0 then 
                                                 _G.reader_tts_player.setLanguage(loc)
