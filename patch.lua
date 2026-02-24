@@ -1,10 +1,9 @@
 -- Nova Pad v2.9 - Live Patch
--- TTS + 100% Safe Hindi/English Search (No Java, No Encoding Bugs)
+-- TTS + Java Regex Search (100% Hindi/English Safe)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
 
--- 🌟 SHARED UTILITIES 🌟
 local function getPatchLang()
     local lang = "en"
     local f = io.open(rootDirPatch .. "lang_pref.txt", "r")
@@ -27,14 +26,8 @@ local function showErrorBox(title, msg)
     .show()
 end
 
--- 🔥 जादुई सुरक्षित सर्च फंक्शन (सिर्फ अंग्रेजी को छोटा करेगा, हिंदी को सुरक्षित रखेगा) 🔥
-local function safeLower(str)
-    if not str then return "" end
-    return (string.gsub(tostring(str), "%u", string.lower))
-end
-
 -- ==========================================
--- 🔥 1. LISTEN (TTS) BUTTON (यह एकदम परफेक्ट है) 🔥
+-- 🔥 1. LISTEN (TTS) BUTTON 🔥
 -- ==========================================
 pcall(function()
     btnReaderTranslate.setText(LP("Listen 🗣️", "सुनें 🗣️"))
@@ -89,15 +82,10 @@ pcall(function()
                                 import "android.speech.tts.TextToSpeech"
                                 _G.reader_tts_player = TextToSpeech(patchActivity, TextToSpeech.OnInitListener{
                                     onInit = function(status) 
-                                        local ok3, err3 = pcall(function()
-                                            if status == 0 then 
-                                                _G.reader_tts_player.setLanguage(loc)
-                                                _G.reader_tts_player.speak(_G.patch_tts_text, 0, nil) 
-                                            else
-                                                Toast.makeText(patchActivity, "TTS Engine Error", 0).show()
-                                            end
-                                        end)
-                                        if not ok3 then showErrorBox("Engine Error", err3) end
+                                        if status == 0 then 
+                                            _G.reader_tts_player.setLanguage(loc)
+                                            _G.reader_tts_player.speak(_G.patch_tts_text, 0, nil) 
+                                        end
                                     end
                                 }) 
                             else 
@@ -106,16 +94,14 @@ pcall(function()
                             end
                         end
                     end)
-                    if not ok2 then showErrorBox("Menu Error", err2) end
                 end)
             end)
-            if not ok1 then showErrorBox("Click Error", err1) end
         end
     })
 end)
 
 -- ==========================================
--- 🔥 2. FIND BUTTON (SAFE UTF-8 OVERWRITE) 🔥
+-- 🔥 2. FIND BUTTON (JAVA REGEX HINDI FIX) 🔥
 -- ==========================================
 pcall(function()
     btnReaderSearch.setOnClickListener(View.OnClickListener{
@@ -136,8 +122,13 @@ pcall(function()
                         return
                     end
 
-                    -- अब हमारा जादुई फॉर्मूला काम करेगा!
-                    local query = safeLower(rawQuery)
+                    -- 🔥 ब्रह्मास्त्र: जावा का रेगुलर एक्सप्रेशन (Regex) इंजन जो हिंदी को परफेक्ट पहचानता है 🔥
+                    import "java.util.regex.Pattern"
+                    import "java.lang.String"
+                    
+                    -- Pattern.CASE_INSENSITIVE (2) का इस्तेमाल ताकि अंग्रेज़ी के छोटे-बड़े अक्षर भी काम करें
+                    local pattern = Pattern.compile(Pattern.quote(rawQuery), 2)
+                    local jQueryLen = String(rawQuery).length()
 
                     if paraList and paraList.getVisibility() == 0 then
                         local adapter = paraList.getAdapter()
@@ -145,8 +136,10 @@ pcall(function()
                         
                         if adapter then
                             for i = 0, adapter.getCount() - 1 do
-                                local itemText = safeLower(adapter.getItem(i) or "")
-                                if string.find(itemText, query, 1, true) then
+                                local itemText = tostring(adapter.getItem(i) or "")
+                                local matcher = pattern.matcher(itemText)
+                                -- सटीक मैच
+                                if matcher.find() then
                                     foundIndex = i
                                     break
                                 end
@@ -161,13 +154,14 @@ pcall(function()
                         end
 
                     elseif readerBody then
-                        local fullText = safeLower(readerBody.getText() or "")
-                        local startPos = string.find(fullText, query, 1, true)
-
-                        if startPos then
+                        local fullText = tostring(readerBody.getText() or "")
+                        local matcher = pattern.matcher(fullText)
+                        
+                        if matcher.find() then
+                            -- बिल्कुल सही जगह पर कर्सर ले जाने के लिए
+                            local startPos = matcher.start()
                             readerBody.requestFocus()
-                            -- सही जगह कर्सर ले जाने के लिए
-                            readerBody.setSelection(startPos - 1, startPos - 1 + string.len(rawQuery))
+                            readerBody.setSelection(startPos, startPos + jQueryLen)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
                             Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
