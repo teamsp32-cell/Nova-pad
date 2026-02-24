@@ -59,14 +59,17 @@ pcall(function()
     -- ✅ यह फाइल्स सबको मिलेंगी (Public + Beta)
     table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tts.lua")
     table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_notify.lua")
-    -- 🛠️ आम यूज़र्स को फाइंड बटन पर मेंटेनेंस का मैसेज देगा
-    table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find.lua") 
 
+    -- 🔥 असली फिक्स यहाँ है (If / Else Logic) 🔥
     if isBetaUser then
-        -- 🔬 यह फाइल्स सिर्फ तुम्हें (Beta Testers) मिलेंगी
-        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find_lab.lua") -- तुम्हारी फाइंड बटन की टेस्टिंग लैब
+        -- 🔬 सिर्फ बीटा टेस्टर्स के लिए (Find Lab)
+        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find_lab.lua")
         table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_beta_test.lua")
         Toast.makeText(patchActivity, "🛠️ Master: Beta Channel Loaded", 0).show()
+    else
+        -- 🌍 सिर्फ आम यूज़र्स के लिए (Maintenance Mode)
+        -- अब बीटा यूज़र्स को यह मेंटेनेंस फाइल मिलेगी ही नहीं!
+        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find.lua") 
     end
 
     -- 🚀 5. सभी पैचेस को बैकग्राउंड में सुरक्षित तरीके से चलाना
