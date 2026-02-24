@@ -1,5 +1,5 @@
 -- Nova Pad v2.9 - Live Patch (OTA)
--- Combined Patch: TTS Engine + TRUE Find Bug Fix (btnReaderSearch)
+-- Combined Patch: TTS Engine + PERFECT Search (Hindi & English Safe)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -107,13 +107,11 @@ pcall(function()
 end)
 
 -- ==========================================
--- 🔥 FEATURE 2: THE REAL FIND BUTTON (btnReaderSearch) 🔥
+-- 🔥 FEATURE 2: SEARCH ENGINE (HINDI & ENGLISH SAFE) 🔥
 -- ==========================================
 pcall(function()
-    -- 🚨 पुराने क्रैश कोड (लाइन 593) को जड़ से उखाड़ रहे हैं 🚨
     btnReaderSearch.setOnClickListener(nil)
 
-    -- नया, सेफ और पैराग्राफ मोड को सपोर्ट करने वाला कोड
     btnReaderSearch.onClick = function()
         local okFind, errFind = pcall(function()
             local findInput = EditText(patchActivity)
@@ -127,12 +125,18 @@ pcall(function()
                 
                 local okSearch, errSearch = pcall(function()
                     import "java.lang.String"
-                    local query = String(findInput.getText().toString()):toLowerCase():toString()
+                    import "java.util.Locale"
                     
-                    if query == "" then
-                        Toast.makeText(patchActivity, LP("Please type something!", "कुछ टाइप तो करो भाई!"), 0).show()
+                    local rawQuery = tostring(findInput.getText() or "")
+                    if rawQuery == "" then
+                        Toast.makeText(patchActivity, LP("Please type something!", "कृपया खोजने के लिए कुछ लिखें!"), 0).show()
                         return
                     end
+
+                    -- 🔥 एरर फिक्स: Locale.getDefault() देकर सिस्टम का असमंजस दूर कर दिया
+                    local currentLocale = Locale.getDefault()
+                    local jQuery = String(rawQuery).toLowerCase(currentLocale)
+                    local qLen = jQuery.length()
 
                     if paraList and paraList.getVisibility() == 0 then
                         -- पैराग्राफ मोड के अंदर खोजना
@@ -141,8 +145,11 @@ pcall(function()
                         
                         if adapter then
                             for i = 0, adapter.getCount() - 1 do
-                                local itemText = String(tostring(adapter.getItem(i) or "")):toLowerCase():toString()
-                                if string.find(itemText, query, 1, true) then
+                                local itemText = tostring(adapter.getItem(i) or "")
+                                local jItem = String(itemText).toLowerCase(currentLocale)
+                                
+                                -- सटीक मैच के लिए जावा का contains उपयोग किया है
+                                if jItem.contains(jQuery) then
                                     foundIndex = i
                                     break
                                 end
@@ -150,24 +157,25 @@ pcall(function()
                         end
 
                         if foundIndex ~= -1 then
-                            -- सीधा उसी लाइन/पैराग्राफ पर ले जाओ
                             paraList.setSelection(foundIndex) 
                             Toast.makeText(patchActivity, LP("Found at paragraph: ", "मिल गया! पैराग्राफ: ") .. tostring(foundIndex + 1), 0).show()
                         else
-                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
+                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
                         end
 
                     elseif readerBody then
                         -- फुल टेक्स्ट मोड के अंदर खोजना
-                        local fullText = String(tostring(readerBody.getText() or "")):toLowerCase():toString()
-                        local startPos = string.find(fullText, query, 1, true)
+                        local fullText = tostring(readerBody.getText() or "")
+                        local jFullText = String(fullText).toLowerCase(currentLocale)
+                        local startPos = jFullText.indexOf(jQuery)
 
-                        if startPos then
+                        if startPos >= 0 then
                             readerBody.requestFocus()
-                            readerBody.setSelection(startPos - 1, startPos - 1 + string.len(query))
+                            -- सही जगह पर कर्सर ले जाने के लिए
+                            readerBody.setSelection(startPos, startPos + qLen)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
-                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
+                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
                         end
                     end
                 end)
