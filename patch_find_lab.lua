@@ -1,5 +1,5 @@
 -- Nova Pad - Beta Find Lab 🔬
--- External Dependency Powered: Java Native Regex Engine (UTF-8/Unicode Safe)
+-- External Dependency Powered: Java Native Regex Engine (Fixed Lua Syntax)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -34,13 +34,13 @@ pcall(function()
                     return
                 end
 
-                -- 🔥 EXTERNAL DEPENDENCY: Importing Java Native Engines 🔥
-                import "java.lang.String"
-                import "java.util.regex.Pattern"
+                -- 🔥 EXTERNAL DEPENDENCY: Java Classes को सुरक्षित तरीके से Bind कर रहे हैं 🔥
+                local JString = luajava.bindClass("java.lang.String")
+                local JPattern = luajava.bindClass("java.util.regex.Pattern")
                 
-                -- Pattern.CASE_INSENSITIVE (2) + Pattern.UNICODE_CASE (64) = 66
-                -- यह फ्लैग (66) अंग्रेजी को केस-फ्री रखेगा और हिंदी (Unicode) को टूटने नहीं देगा!
-                local pattern = Pattern.compile(Pattern.quote(rawQuery), 66)
+                -- JPattern.compile स्थिर (static) है, इसलिए डॉट (.) चलेगा
+                -- 66 = CASE_INSENSITIVE + UNICODE_CASE
+                local pattern = JPattern.compile(JPattern.quote(rawQuery), 66)
 
                 if paraList and paraList.getVisibility() == 0 then
                     -- पैराग्राफ मोड
@@ -50,13 +50,12 @@ pcall(function()
                     if adapter then
                         for i = 0, adapter.getCount() - 1 do
                             local itemText = tostring(adapter.getItem(i) or "")
+                            local jItemText = JString.valueOf(itemText)
                             
-                            -- शुद्ध जावा के स्ट्रिंग में बदलकर मैच करना
-                            local jItemText = String(itemText)
-                            local matcher = pattern.matcher(jItemText)
+                            -- 🔥 FIX: ऑब्जेक्ट के लिए कोलन (:) का इस्तेमाल 🔥
+                            local matcher = pattern:matcher(jItemText)
                             
-                            -- अगर शब्द मिला
-                            if matcher.find() then
+                            if matcher:find() then
                                 foundIndex = i
                                 break
                             end
@@ -73,15 +72,15 @@ pcall(function()
                 elseif readerBody then
                     -- फुल टेक्स्ट मोड
                     local fullText = tostring(readerBody.getText() or "")
+                    local jFullText = JString.valueOf(fullText)
                     
-                    -- पूरा टेक्स्ट जावा के हवाले कर दिया
-                    local jFullText = String(fullText)
-                    local matcher = pattern.matcher(jFullText)
+                    -- 🔥 FIX: कोलन (:) का इस्तेमाल 🔥
+                    local matcher = pattern:matcher(jFullText)
                     
-                    if matcher.find() then
-                        -- जावा का नेटिव स्टार्ट और एंड पोज़िशन (Characters में, Bytes में नहीं!)
-                        local startPos = matcher.start()
-                        local endPos = matcher.end()
+                    if matcher:find() then
+                        -- 🔥 FIX: कोलन (:) का इस्तेमाल 🔥
+                        local startPos = matcher:start()
+                        local endPos = matcher:end()
                         
                         readerBody.requestFocus()
                         -- बिल्कुल सही जगह पर सिलेक्शन
@@ -94,6 +93,6 @@ pcall(function()
             end)
             .setNegativeButton(LP("Cancel", "रद्द करें"), nil)
             .show()
-        end)
+        end
     })
 end)
