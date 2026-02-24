@@ -1,5 +1,5 @@
 -- Nova Pad v2.9 - Live Patch (OTA)
--- Combined Patch: TTS Engine + PERFECT Search (Hindi & English Safe)
+-- Combined Patch: TTS Engine + PERFECT Search (Dot vs Colon Fix)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -133,10 +133,11 @@ pcall(function()
                         return
                     end
 
-                    -- 🔥 एरर फिक्स: Locale.getDefault() देकर सिस्टम का असमंजस दूर कर दिया
                     local currentLocale = Locale.getDefault()
-                    local jQuery = String(rawQuery).toLowerCase(currentLocale)
-                    local qLen = jQuery.length()
+                    -- 🔥 FIX: डॉट (.) की जगह कोलन (:) का इस्तेमाल किया
+                    local jQuery = String(rawQuery):toLowerCase(currentLocale)
+                    local qLen = jQuery:length()
+                    local queryStr = jQuery:toString() -- इसे सुरक्षित बना दिया
 
                     if paraList and paraList.getVisibility() == 0 then
                         -- पैराग्राफ मोड के अंदर खोजना
@@ -146,10 +147,10 @@ pcall(function()
                         if adapter then
                             for i = 0, adapter.getCount() - 1 do
                                 local itemText = tostring(adapter.getItem(i) or "")
-                                local jItem = String(itemText).toLowerCase(currentLocale)
+                                -- 🔥 FIX: डॉट की जगह कोलन
+                                local jItem = String(itemText):toLowerCase(currentLocale)
                                 
-                                -- सटीक मैच के लिए जावा का contains उपयोग किया है
-                                if jItem.contains(jQuery) then
+                                if jItem:contains(queryStr) then
                                     foundIndex = i
                                     break
                                 end
@@ -166,12 +167,12 @@ pcall(function()
                     elseif readerBody then
                         -- फुल टेक्स्ट मोड के अंदर खोजना
                         local fullText = tostring(readerBody.getText() or "")
-                        local jFullText = String(fullText).toLowerCase(currentLocale)
-                        local startPos = jFullText.indexOf(jQuery)
+                        -- 🔥 FIX: डॉट की जगह कोलन
+                        local jFullText = String(fullText):toLowerCase(currentLocale)
+                        local startPos = jFullText:indexOf(queryStr)
 
                         if startPos >= 0 then
                             readerBody.requestFocus()
-                            -- सही जगह पर कर्सर ले जाने के लिए
                             readerBody.setSelection(startPos, startPos + qLen)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
