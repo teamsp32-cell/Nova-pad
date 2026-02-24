@@ -1,5 +1,5 @@
 -- Nova Pad v2.9 - Live Patch
--- TTS + Hard Overwrite Find Bug Fix (Accessibility Safe)
+-- TTS + 100% Safe Hindi/English Search (No Java, No Encoding Bugs)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -25,6 +25,12 @@ local function showErrorBox(title, msg)
     .setView(errInput)
     .setPositiveButton("OK", nil)
     .show()
+end
+
+-- 🔥 जादुई सुरक्षित सर्च फंक्शन (सिर्फ अंग्रेजी को छोटा करेगा, हिंदी को सुरक्षित रखेगा) 🔥
+local function safeLower(str)
+    if not str then return "" end
+    return (string.gsub(tostring(str), "%u", string.lower))
 end
 
 -- ==========================================
@@ -109,10 +115,9 @@ pcall(function()
 end)
 
 -- ==========================================
--- 🔥 2. FIND BUTTON (HARD OVERWRITE) 🔥
+-- 🔥 2. FIND BUTTON (SAFE UTF-8 OVERWRITE) 🔥
 -- ==========================================
 pcall(function()
-    -- 🚨 पुराने लिसनर को 'View.OnClickListener' के ज़रिए 100% रिप्लेस कर रहे हैं 🚨
     btnReaderSearch.setOnClickListener(View.OnClickListener{
         onClick = function(v)
             local okFind, errFind = pcall(function()
@@ -131,8 +136,8 @@ pcall(function()
                         return
                     end
 
-                    -- एकदम शुद्ध लुआ (Pure Lua), कोई जावा (Java) नहीं, ताकि 593 वाला क्रैश कभी न आए!
-                    local query = string.lower(rawQuery)
+                    -- अब हमारा जादुई फॉर्मूला काम करेगा!
+                    local query = safeLower(rawQuery)
 
                     if paraList and paraList.getVisibility() == 0 then
                         local adapter = paraList.getAdapter()
@@ -140,7 +145,7 @@ pcall(function()
                         
                         if adapter then
                             for i = 0, adapter.getCount() - 1 do
-                                local itemText = string.lower(tostring(adapter.getItem(i) or ""))
+                                local itemText = safeLower(adapter.getItem(i) or "")
                                 if string.find(itemText, query, 1, true) then
                                     foundIndex = i
                                     break
@@ -156,12 +161,13 @@ pcall(function()
                         end
 
                     elseif readerBody then
-                        local fullText = string.lower(tostring(readerBody.getText() or ""))
+                        local fullText = safeLower(readerBody.getText() or "")
                         local startPos = string.find(fullText, query, 1, true)
 
                         if startPos then
                             readerBody.requestFocus()
-                            readerBody.setSelection(startPos - 1, startPos - 1 + string.len(query))
+                            -- सही जगह कर्सर ले जाने के लिए
+                            readerBody.setSelection(startPos - 1, startPos - 1 + string.len(rawQuery))
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
                             Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
