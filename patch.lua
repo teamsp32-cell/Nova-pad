@@ -1,10 +1,10 @@
--- Nova Pad v2.9 - Live Patch (OTA)
--- Combined Patch: TTS Engine + PERFECT Search (Dot vs Colon Fix)
+-- Nova Pad v2.9 - Live Patch
+-- Pure Lua Search (No Java toLowerCase) & Touch Bypass Hack
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
 
--- 🌟 SHARED UTILITIES 🌟
+-- 🌟 भाषा सेट करने का फॉर्मूला 🌟
 local function getPatchLang()
     local lang = "en"
     local f = io.open(rootDirPatch .. "lang_pref.txt", "r")
@@ -28,7 +28,7 @@ local function showErrorBox(title, msg)
 end
 
 -- ==========================================
--- 🔥 FEATURE 1: LISTEN (TTS) BUTTON 🔥
+-- 🔥 1. LISTEN (TTS) BUTTON (यह एकदम परफेक्ट है) 🔥
 -- ==========================================
 pcall(function()
     btnReaderTranslate.setText(LP("Listen 🗣️", "सुनें 🗣️"))
@@ -107,85 +107,78 @@ pcall(function()
 end)
 
 -- ==========================================
--- 🔥 FEATURE 2: SEARCH ENGINE (HINDI & ENGLISH SAFE) 🔥
+-- 🔥 2. FIND BUTTON (PURE LUA + TOUCH BYPASS) 🔥
 -- ==========================================
 pcall(function()
-    btnReaderSearch.setOnClickListener(nil)
+    import "android.view.MotionEvent"
+    
+    -- 🚨 पुराने कोड को चलने से रोकने के लिए OnTouch का इस्तेमाल 🚨
+    btnReaderSearch.setOnTouchListener(View.OnTouchListener{
+        onTouch = function(v, event)
+            if event.getAction() == MotionEvent.ACTION_UP then
+                local okFind, errFind = pcall(function()
+                    local findInput = EditText(patchActivity)
+                    findInput.setHint(LP("Type to search...", "खोजने के लिए यहाँ लिखें..."))
+                    findInput.setTextColor(0xFF000000)
 
-    btnReaderSearch.onClick = function()
-        local okFind, errFind = pcall(function()
-            local findInput = EditText(patchActivity)
-            findInput.setHint(LP("Type to search...", "खोजने के लिए यहाँ लिखें..."))
-            findInput.setTextColor(0xFF000000)
-
-            AlertDialog.Builder(patchActivity)
-            .setTitle(LP("Find Word 🔍", "शब्द खोजें 🔍"))
-            .setView(findInput)
-            .setPositiveButton(LP("Search", "खोजें"), function()
-                
-                local okSearch, errSearch = pcall(function()
-                    import "java.lang.String"
-                    import "java.util.Locale"
-                    
-                    local rawQuery = tostring(findInput.getText() or "")
-                    if rawQuery == "" then
-                        Toast.makeText(patchActivity, LP("Please type something!", "कृपया खोजने के लिए कुछ लिखें!"), 0).show()
-                        return
-                    end
-
-                    local currentLocale = Locale.getDefault()
-                    -- 🔥 FIX: डॉट (.) की जगह कोलन (:) का इस्तेमाल किया
-                    local jQuery = String(rawQuery):toLowerCase(currentLocale)
-                    local qLen = jQuery:length()
-                    local queryStr = jQuery:toString() -- इसे सुरक्षित बना दिया
-
-                    if paraList and paraList.getVisibility() == 0 then
-                        -- पैराग्राफ मोड के अंदर खोजना
-                        local adapter = paraList.getAdapter()
-                        local foundIndex = -1
+                    AlertDialog.Builder(patchActivity)
+                    .setTitle(LP("Find Word 🔍", "शब्द खोजें 🔍"))
+                    .setView(findInput)
+                    .setPositiveButton(LP("Search", "खोजें"), function()
                         
-                        if adapter then
-                            for i = 0, adapter.getCount() - 1 do
-                                local itemText = tostring(adapter.getItem(i) or "")
-                                -- 🔥 FIX: डॉट की जगह कोलन
-                                local jItem = String(itemText):toLowerCase(currentLocale)
-                                
-                                if jItem:contains(queryStr) then
-                                    foundIndex = i
-                                    break
+                        local rawQuery = tostring(findInput.getText() or "")
+                        if rawQuery == "" then
+                            Toast.makeText(patchActivity, LP("Please type something!", "कृपया खोजने के लिए कुछ लिखें!"), 0).show()
+                            return
+                        end
+
+                        -- 🔥 कोई जावा नहीं! सिर्फ शुद्ध लुआ (Pure Lua) का उपयोग 🔥
+                        local query = string.lower(rawQuery)
+
+                        if paraList and paraList.getVisibility() == 0 then
+                            -- पैराग्राफ मोड
+                            local adapter = paraList.getAdapter()
+                            local foundIndex = -1
+                            
+                            if adapter then
+                                for i = 0, adapter.getCount() - 1 do
+                                    local itemText = string.lower(tostring(adapter.getItem(i) or ""))
+                                    if string.find(itemText, query, 1, true) then
+                                        foundIndex = i
+                                        break
+                                    end
                                 end
                             end
-                        end
 
-                        if foundIndex ~= -1 then
-                            paraList.setSelection(foundIndex) 
-                            Toast.makeText(patchActivity, LP("Found at paragraph: ", "मिल गया! पैराग्राफ: ") .. tostring(foundIndex + 1), 0).show()
-                        else
-                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
-                        end
+                            if foundIndex ~= -1 then
+                                paraList.setSelection(foundIndex) 
+                                Toast.makeText(patchActivity, LP("Found at paragraph: ", "मिल गया! पैराग्राफ: ") .. tostring(foundIndex + 1), 0).show()
+                            else
+                                Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
+                            end
 
-                    elseif readerBody then
-                        -- फुल टेक्स्ट मोड के अंदर खोजना
-                        local fullText = tostring(readerBody.getText() or "")
-                        -- 🔥 FIX: डॉट की जगह कोलन
-                        local jFullText = String(fullText):toLowerCase(currentLocale)
-                        local startPos = jFullText:indexOf(queryStr)
+                        elseif readerBody then
+                            -- फुल टेक्स्ट मोड
+                            local fullText = string.lower(tostring(readerBody.getText() or ""))
+                            local startPos = string.find(fullText, query, 1, true)
 
-                        if startPos >= 0 then
-                            readerBody.requestFocus()
-                            readerBody.setSelection(startPos, startPos + qLen)
-                            Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
-                        else
-                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
+                            if startPos then
+                                readerBody.requestFocus()
+                                readerBody.setSelection(startPos - 1, startPos - 1 + string.len(query))
+                                Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
+                            else
+                                Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
+                            end
                         end
-                    end
+                    end)
+                    .setNegativeButton(LP("Cancel", "रद्द करें"), nil)
+                    .show()
                 end)
-                if not okSearch then showErrorBox("Search Error", errSearch) end
-                
-            end)
-            .setNegativeButton(LP("Cancel", "रद्द करें"), nil)
-            .show()
-        end)
-        if not okFind then showErrorBox("Find Setup Error", errFind) end
-    end
+                if not okFind then showErrorBox("Find Setup Error", errFind) end
+            end
+            
+            -- 🔥 यह सबसे महत्वपूर्ण लाइन है: यह पुराने क्रैश वाले कोड (लाइन 593) को ब्लॉक कर देगी! 🔥
+            return true
+        end
+    })
 end)
