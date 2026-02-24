@@ -1,32 +1,36 @@
 -- Nova Pad v2.9 - Live Patch (OTA)
--- Ultimate Triple-Trap Error Catcher & Locale Fix
+-- Combined Patch: TTS Engine + Find Bug Fix
 
+local patchActivity = activity
+local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
+
+-- 🌟 SHARED UTILITIES (भाषा और एरर कैचर) 🌟
+local function getPatchLang()
+    local lang = "en"
+    local f = io.open(rootDirPatch .. "lang_pref.txt", "r")
+    if f then
+        local content = f:read("*a"); f:close()
+        if content and content:match("hi") then lang = "hi" end
+    end
+    return lang
+end
+local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
+
+local function showErrorBox(title, msg)
+    local errInput = EditText(patchActivity)
+    errInput.setText(tostring(msg))
+    errInput.setTextIsSelectable(true)
+    AlertDialog.Builder(patchActivity)
+    .setTitle(title .. " (Copy this)")
+    .setView(errInput)
+    .setPositiveButton("OK", nil)
+    .show()
+end
+
+-- ==========================================
+-- 🔥 FEATURE 1: LISTEN (TTS) BUTTON 🔥
+-- ==========================================
 pcall(function()
-    local rootDirPatch = activity.getExternalFilesDir(nil).toString() .. "/"
-
-    local function getPatchLang()
-        local lang = "en"
-        local f = io.open(rootDirPatch .. "lang_pref.txt", "r")
-        if f then
-            local content = f:read("*a"); f:close()
-            if content and content:match("hi") then lang = "hi" end
-        end
-        return lang
-    end
-    local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
-
-    -- 🔥 यह है हमारा परमानेंट ग्लोबल एरर कैचर बॉक्स (हमेशा रहेगा) 🔥
-    local function showErrorBox(title, msg)
-        local errInput = EditText(activity)
-        errInput.setText(tostring(msg))
-        errInput.setTextIsSelectable(true)
-        AlertDialog.Builder(activity)
-        .setTitle(title .. " (Copy this)")
-        .setView(errInput)
-        .setPositiveButton("OK", nil)
-        .show()
-    end
-
     btnReaderTranslate.setText(LP("Listen 🗣️", "सुनें 🗣️"))
     btnReaderTranslate.setTextColor(0xFF4CAF50)
 
@@ -34,7 +38,6 @@ pcall(function()
         onClick = function()
             local ok1, err1 = pcall(function()
                 local textToRead = ""
-                
                 if paraList and paraList.getVisibility() == 0 then
                     local adapter = paraList.getAdapter()
                     if adapter then
@@ -51,7 +54,7 @@ pcall(function()
                 end
                 
                 if textToRead == nil or textToRead == "" then
-                    Toast.makeText(activity, LP("Nothing to read!", "पढ़ने के लिए कुछ नहीं मिला!"), 0).show()
+                    Toast.makeText(patchActivity, LP("Nothing to read!", "पढ़ने के लिए कुछ नहीं मिला!"), 0).show()
                     return
                 end
                 
@@ -67,27 +70,25 @@ pcall(function()
                 showNovaMenu(LP("TTS Options", "TTS विकल्प"), ttsOpts, function(tIdx)
                     local ok2, err2 = pcall(function()
                         if tIdx == 2 then 
-                            activity.startActivity(Intent("com.android.settings.TTS_SETTINGS"))
+                            patchActivity.startActivity(Intent("com.android.settings.TTS_SETTINGS"))
                         elseif tIdx == 3 then 
                             if _G.reader_tts_player then _G.reader_tts_player.stop() end
-                            Toast.makeText(activity, LP("Stopped Reading ⏹️", "पढ़ना बंद किया ⏹️"), 0).show()
+                            Toast.makeText(patchActivity, LP("Stopped Reading ⏹️", "पढ़ना बंद किया ⏹️"), 0).show()
                         else
-                            Toast.makeText(activity, LP("Starting Reader... 🗣️", "रीडर शुरू हो रहा है... 🗣️"), 0).show()
-                            
-                            -- 🔥 FIX: 'java' एरर का पक्का इलाज 🔥
+                            Toast.makeText(patchActivity, LP("Starting Reader... 🗣️", "रीडर शुरू हो रहा है... 🗣️"), 0).show()
                             import "java.util.Locale"
                             local loc = (tIdx == 1) and Locale("en", "US") or Locale("hi", "IN")
                             
                             if _G.reader_tts_player == nil then 
                                 import "android.speech.tts.TextToSpeech"
-                                _G.reader_tts_player = TextToSpeech(activity, TextToSpeech.OnInitListener{
+                                _G.reader_tts_player = TextToSpeech(patchActivity, TextToSpeech.OnInitListener{
                                     onInit = function(status) 
                                         local ok3, err3 = pcall(function()
                                             if status == 0 then 
                                                 _G.reader_tts_player.setLanguage(loc)
                                                 _G.reader_tts_player.speak(_G.patch_tts_text, 0, nil) 
                                             else
-                                                Toast.makeText(activity, "TTS Engine Error", 0).show()
+                                                Toast.makeText(patchActivity, "TTS Engine Error", 0).show()
                                             end
                                         end)
                                         if not ok3 then showErrorBox("Engine Error", err3) end
@@ -105,4 +106,93 @@ pcall(function()
             if not ok1 then showErrorBox("Click Error", err1) end
         end
     })
+end)
+
+-- ==========================================
+-- 🔥 FEATURE 2: FIND BUTTON FIX 🔥
+-- ==========================================
+pcall(function()
+    btnReaderFind.setOnClickListener(View.OnClickListener{
+        onClick = function()
+            local okFind, errFind = pcall(function()
+                local findInput = EditText(patchActivity)
+                findInput.setHint(LP("Type here to search...", "खोजने के लिए यहाँ लिखें..."))
+                findInput.setTextColor(0xFF000000)
+
+                AlertDialog.Builder(patchActivity)
+                .setTitle(LP("Find Word 🔍", "शब्द खोजें 🔍"))
+                .setView(findInput)
+                .setPositiveButton(LP("Search", "खोजें"), function()
+                    local query = findInput.getText().toString()
+                    if query == "" then
+                        Toast.makeText(patchActivity, LP("Please type something!", "कुछ टाइप तो करो भाई!"), 0).show()
+                        return
+                    end
+
+                    -- सही लुआ फंक्शन का इस्तेमाल
+                    query = string.lower(query) 
+
+                    if paraList and paraList.getVisibility() == 0 then
+                        local adapter = paraList.getAdapter()
+                        local foundIndex = -1
+                        
+                        if adapter then
+                            for i = 0, adapter.getCount() - 1 do
+                                local itemText = string.lower(tostring(adapter.getItem(i)))
+                                -- सटीक सर्च
+                                if string.find(itemText, query, 1, true) then
+                                    foundIndex = i
+                                    break
+                                end
+                            end
+                        end
+
+                        if foundIndex ~= -1 then
+                            -- सीधा उसी लाइन/पैराग्राफ पर ले जाओ
+                            paraList.setSelection(foundIndex) 
+                            Toast.makeText(patchActivity, LP("Found at paragraph: ", "मिल गया! पैराग्राफ: ") .. tostring(foundIndex + 1), 0).show()
+                        else
+                            Toast.makeText(patchActivity, LP("Word not found in this note.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
+                        end
+
+                    elseif readerBody then
+                        local fullText = string.lower(tostring(readerBody.getText() or ""))
+                        local startPos = string.find(fullText, query, 1, true)
+
+                        if startPos then
+                            readerBody.requestFocus()
+                            readerBody.setSelection(startPos - 1, startPos - 1 + string.len(query))
+                            Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
+                        else
+                            Toast.makeText(patchActivity, LP("Word not found in this note.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
+                        end
+                    end
+                end)
+                .setNegativeButton(LP("Cancel", "रद्द करें"), nil)
+                .show()
+            end)
+            if not okFind then showErrorBox("Find Error", errFind) end
+        end
+    })
+end)
+
+-- ==========================================
+-- 🔥 SMART POPUP ANNOUNCEMENT 🔥
+-- ==========================================
+pcall(function()
+    local patchLockFile = rootDirPatch .. "tts_find_patch.lock"
+    local f_lock = io.open(patchLockFile, "r")
+    if not f_lock then
+        AlertDialog.Builder(patchActivity)
+        .setTitle(LP("🎉 New Updates!", "🎉 नए अपडेट्स!"))
+        .setMessage(LP("1. Listen 🗣️: You can now listen to your notes.\n2. Find 🔍: The search bug in Reader Mode is now fixed!", "1. सुनें 🗣️: अब आप अपने नोट्स को सुन सकते हैं।\n2. खोजें 🔍: रीडर मोड में सर्च वाला बग अब ठीक हो गया है!"))
+        .setPositiveButton(LP("Awesome!", "बहुत बढ़िया!"), function()
+            local fw = io.open(patchLockFile, "w")
+            if fw then fw:write("seen"); fw:close() end
+        end)
+        .setCancelable(false)
+        .show()
+    else
+        f_lock:close()
+    end
 end)
