@@ -5,7 +5,7 @@ pcall(function()
     local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
     local devFile = rootDirPatch .. "developer_mode.txt"
 
-    -- 🌟 1. तुम्हारा नया सीक्रेट बीटा पासवर्ड 🌟
+    -- 🌟 1. तुम्हारा सीक्रेट बीटा पासवर्ड 🌟
     local mySecretBetaCode = "Mayank@123"
 
     -- 🚨 2. सीक्रेट बीटा स्विच (Top Title पर लॉन्ग प्रेस) 🚨
@@ -59,12 +59,12 @@ pcall(function()
     -- ✅ यह फाइल्स सबको मिलेंगी (Public + Beta)
     table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tts.lua")
     table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_notify.lua")
-
-    -- (भविष्य के लिए: जब तुम Find बटन का मेंटेनेंस कोड 'patch_find_lab.lua' में डाल दोगे, तो नीचे वाली लाइन के आगे से '--' हटा देना)
-    -- table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find_lab.lua")
+    -- 🛠️ आम यूज़र्स को फाइंड बटन पर मेंटेनेंस का मैसेज देगा
+    table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find.lua") 
 
     if isBetaUser then
-        -- 🛠️ यह फाइल्स सिर्फ तुम्हें (Beta Testers) मिलेंगी
+        -- 🔬 यह फाइल्स सिर्फ तुम्हें (Beta Testers) मिलेंगी
+        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find_lab.lua") -- तुम्हारी फाइंड बटन की टेस्टिंग लैब
         table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_beta_test.lua")
         Toast.makeText(patchActivity, "🛠️ Master: Beta Channel Loaded", 0).show()
     end
