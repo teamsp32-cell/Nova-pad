@@ -1,119 +1,91 @@
--- Nova Pad v2.9 - Live Patch (Stable)
--- TTS Enabled + Find Button in Maintenance
-
-local patchActivity = activity
-local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
-
--- 🌟 SHARED UTILITIES 🌟
-local function getPatchLang()
-    local lang = "en"
-    local f = io.open(rootDirPatch .. "lang_pref.txt", "r")
-    if f then
-        local content = f:read("*a"); f:close()
-        if content and content:match("hi") then lang = "hi" end
-    end
-    return lang
-end
-local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
-
-local function showErrorBox(title, msg)
-    local errInput = EditText(patchActivity)
-    errInput.setText(tostring(msg))
-    errInput.setTextIsSelectable(true)
-    AlertDialog.Builder(patchActivity)
-    .setTitle(title .. " (Copy this)")
-    .setView(errInput)
-    .setPositiveButton("OK", nil)
-    .show()
-end
+-- Nova Pad v2.9 - THE MASTER ROUTER (Beta Channel & Multi-Patch System)
 
 pcall(function()
-    -- ==========================================
-    -- 🔥 1. LISTEN (TTS) BUTTON (100% वर्किंग) 🔥
-    -- ==========================================
-    btnReaderTranslate.setText(LP("Listen 🗣️", "सुनें 🗣️"))
-    btnReaderTranslate.setTextColor(0xFF4CAF50)
+    local patchActivity = activity
+    local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
+    local devFile = rootDirPatch .. "developer_mode.txt"
 
-    -- पुराने "AI Translator" वाले मेसेज को पूरी तरह ओवरराइट कर रहे हैं
-    btnReaderTranslate.setOnClickListener(View.OnClickListener{
-        onClick = function()
-            local ok1, err1 = pcall(function()
-                local textToRead = ""
-                if paraList and paraList.getVisibility() == 0 then
-                    local adapter = paraList.getAdapter()
-                    if adapter then
-                        for i = 0, adapter.getCount() - 1 do
-                            textToRead = textToRead .. tostring(adapter.getItem(i)) .. "\n"
-                        end
-                    end
-                elseif readerBody then
-                    textToRead = tostring(readerBody.getText() or "")
-                end
-                
-                if textToRead == nil or textToRead == "" then
-                    if noteEditor then textToRead = tostring(noteEditor.getText() or "") end
-                end
-                
-                if textToRead == nil or textToRead == "" then
-                    Toast.makeText(patchActivity, LP("Nothing to read!", "पढ़ने के लिए कुछ नहीं मिला!"), 0).show()
-                    return
-                end
-                
-                _G.patch_tts_text = textToRead
-                
-                local ttsOpts = {
-                    LP("🇮🇳 Read in Hindi", "🇮🇳 हिंदी में पढ़ें"), 
-                    LP("🇬🇧 Read in English", "🇬🇧 English में पढ़ें"), 
-                    LP("⚙️ Voice Settings", "⚙️ आवाज़ की सेटिंग"), 
-                    LP("⏹️ Stop Reading", "⏹️ पढ़ना बंद करें")
-                }
-                
-                showNovaMenu(LP("TTS Options", "TTS विकल्प"), ttsOpts, function(tIdx)
-                    local ok2, err2 = pcall(function()
-                        if tIdx == 2 then 
-                            patchActivity.startActivity(Intent("com.android.settings.TTS_SETTINGS"))
-                        elseif tIdx == 3 then 
-                            if _G.reader_tts_player then _G.reader_tts_player.stop() end
-                            Toast.makeText(patchActivity, LP("Stopped Reading ⏹️", "पढ़ना बंद किया ⏹️"), 0).show()
+    -- 🌟 1. तुम्हारा नया सीक्रेट बीटा पासवर्ड 🌟
+    local mySecretBetaCode = "Mayank@123"
+
+    -- 🚨 2. सीक्रेट बीटा स्विच (Top Title पर लॉन्ग प्रेस) 🚨
+    if topTitle then
+        topTitle.setOnLongClickListener(View.OnLongClickListener{
+            onLongClick = function()
+                local f = io.open(devFile, "r")
+                if f then
+                    AlertDialog.Builder(patchActivity)
+                    .setTitle("👨‍💻 Beta Mode Active")
+                    .setMessage("क्या आप Beta टेस्टिंग से बाहर निकलकर Public वर्ज़न में जाना चाहते हैं?")
+                    .setPositiveButton("Yes (Leave Beta)", function()
+                        f:close(); os.remove(devFile)
+                        Toast.makeText(patchActivity, "🌍 Public Mode ON", 1).show()
+                    end)
+                    .setNegativeButton("Cancel", nil)
+                    .show()
+                else
+                    local codeInput = EditText(patchActivity)
+                    codeInput.setHint("Enter Secret Beta Code...")
+                    
+                    AlertDialog.Builder(patchActivity)
+                    .setTitle("🔒 Beta Access Required")
+                    .setView(codeInput)
+                    .setPositiveButton("Unlock", function()
+                        local enteredCode = tostring(codeInput.getText() or "")
+                        if enteredCode == mySecretBetaCode then
+                            local fw = io.open(devFile, "w")
+                            if fw then fw:write("active"); fw:close() end
+                            Toast.makeText(patchActivity, "🎉 Welcome to Beta Team!", 1).show()
                         else
-                            Toast.makeText(patchActivity, LP("Starting Reader... 🗣️", "रीडर शुरू हो रहा है... 🗣️"), 0).show()
-                            import "java.util.Locale"
-                            local loc = (tIdx == 1) and Locale("en", "US") or Locale("hi", "IN")
-                            
-                            if _G.reader_tts_player == nil then 
-                                import "android.speech.tts.TextToSpeech"
-                                _G.reader_tts_player = TextToSpeech(patchActivity, TextToSpeech.OnInitListener{
-                                    onInit = function(status) 
-                                        local ok3, err3 = pcall(function()
-                                            if status == 0 then 
-                                                _G.reader_tts_player.setLanguage(loc)
-                                                _G.reader_tts_player.speak(_G.patch_tts_text, 0, nil) 
-                                            else
-                                                Toast.makeText(patchActivity, "TTS Engine Error", 0).show()
-                                            end
-                                        end)
-                                        if not ok3 then showErrorBox("Engine Error", err3) end
-                                    end
-                                }) 
-                            else 
-                                _G.reader_tts_player.setLanguage(loc)
-                                _G.reader_tts_player.speak(_G.patch_tts_text, 0, nil)
-                            end
+                            Toast.makeText(patchActivity, "❌ Invalid Beta Code!", 1).show()
                         end
                     end)
-                    if not ok2 then showErrorBox("Menu Error", err2) end
-                end)
-            end)
-            if not ok1 then showErrorBox("Click Error", err1) end
-        end
-    })
+                    .setNegativeButton("Cancel", nil)
+                    .show()
+                end
+                return true
+            end
+        })
+    end
 
-    -- ==========================================
-    -- 🛠️ 2. FIND BUTTON (MAINTENANCE MODE) 🛠️
-    -- ==========================================
-    btnReaderSearch.setOnClickListener(View.OnClickListener{
-        onClick = function(v)
-            Toast.makeText(patchActivity, LP("Find feature is under maintenance 🛠️", "सर्च फीचर अभी मेंटेनेंस में है 🛠️"), 1).show()
-        end
-    })
+    -- 🚥 3. ट्रैफिक कंट्रोलर (चेक करो कि यूज़र टेस्टर है या पब्लिक) 🚥
+    local isBetaUser = false
+    local f_check = io.open(devFile, "r")
+    if f_check then isBetaUser = true; f_check:close() end
+
+    -- 📁 4. पैच फाइल्स की लिस्ट (Raw Links)
+    local patchList = {}
+    
+    -- ✅ यह फाइल्स सबको मिलेंगी (Public + Beta)
+    table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tts.lua")
+    table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_notify.lua")
+
+    -- (भविष्य के लिए: जब तुम Find बटन का मेंटेनेंस कोड 'patch_find_lab.lua' में डाल दोगे, तो नीचे वाली लाइन के आगे से '--' हटा देना)
+    -- table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find_lab.lua")
+
+    if isBetaUser then
+        -- 🛠️ यह फाइल्स सिर्फ तुम्हें (Beta Testers) मिलेंगी
+        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_beta_test.lua")
+        Toast.makeText(patchActivity, "🛠️ Master: Beta Channel Loaded", 0).show()
+    end
+
+    -- 🚀 5. सभी पैचेस को बैकग्राउंड में सुरक्षित तरीके से चलाना
+    for i, url in ipairs(patchList) do
+        Http.get(url, function(code, content)
+            if code == 200 and content and #content > 5 then
+                local ok, err = pcall(load(content))
+                if not ok and isBetaUser then
+                    -- अगर कोई पैच फेल होता है, तो सिर्फ तुम्हें (Beta) एरर दिखेगा
+                    local errInput = EditText(patchActivity)
+                    errInput.setText("Patch Failed: " .. url .. "\n\n" .. tostring(err))
+                    errInput.setTextIsSelectable(true)
+                    AlertDialog.Builder(patchActivity)
+                    .setTitle("Beta Crash Report")
+                    .setView(errInput)
+                    .setPositiveButton("OK", nil)
+                    .show()
+                end
+            end
+        end)
+    end
 end)
