@@ -1,17 +1,8 @@
 -- Nova Pad v2.9 - Live Patch (OTA)
--- The Nuclear Fix: String Metatable Patch + TTS Engine
+-- Combined Patch: TTS Engine + Find Bug (Touch Bypass Hack)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
-
--- ==========================================
--- 💉 THE VACCINE (यह लाइन 593 वाले क्रैश को हमेशा के लिए मार देगा)
--- ==========================================
-pcall(function()
-    -- Lua की डिक्शनरी में toLowerCase को हमेशा के लिए जोड़ रहे हैं
-    string.toLowerCase = string.lower
-    string.toUpperCase = string.upper
-end)
 
 -- 🌟 SHARED UTILITIES 🌟
 local function getPatchLang()
@@ -37,7 +28,7 @@ local function showErrorBox(title, msg)
 end
 
 -- ==========================================
--- 🔥 FEATURE 1: LISTEN (TTS) BUTTON 🔥
+-- 🔥 FEATURE 1: LISTEN (TTS) BUTTON (यह एकदम बढ़िया चल रहा है) 🔥
 -- ==========================================
 pcall(function()
     btnReaderTranslate.setText(LP("Listen 🗣️", "सुनें 🗣️"))
@@ -118,73 +109,80 @@ pcall(function()
 end)
 
 -- ==========================================
--- 🔥 FEATURE 2: FIND BUTTON (NEW LOGIC) 🔥
+-- 🔥 FEATURE 2: FIND BUTTON (THE TOUCH BYPASS HACK) 🔥
 -- ==========================================
 pcall(function()
-    -- बटन का रंग बदल रहे हैं ताकि तुम्हें पता चले कि पैच इस बटन तक पहुँच गया है
     btnReaderFind.setTextColor(0xFF2196F3) -- नीला रंग
 
-    btnReaderFind.setOnClickListener(View.OnClickListener{
-        onClick = function()
-            local okFind, errFind = pcall(function()
-                local findInput = EditText(patchActivity)
-                findInput.setHint(LP("Type to search...", "खोजने के लिए यहाँ लिखें..."))
-                findInput.setTextColor(0xFF000000)
+    -- 🚨 OnClick की जगह OnTouch का इस्तेमाल 🚨
+    import "android.view.MotionEvent"
+    btnReaderFind.setOnTouchListener(View.OnTouchListener{
+        onTouch = function(v, event)
+            -- जब उंगली बटन से ऊपर उठे (ACTION_UP = 1)
+            if event.getAction() == MotionEvent.ACTION_UP then
+                local okFind, errFind = pcall(function()
+                    local findInput = EditText(patchActivity)
+                    findInput.setHint(LP("Type to search...", "खोजने के लिए यहाँ लिखें..."))
+                    findInput.setTextColor(0xFF000000)
 
-                AlertDialog.Builder(patchActivity)
-                .setTitle(LP("Find Word 🔍", "शब्द खोजें 🔍"))
-                .setView(findInput)
-                .setPositiveButton(LP("Search", "खोजें"), function()
-                    
-                    local okSearch, errSearch = pcall(function()
-                        local query = string.lower(tostring(findInput.getText() or ""))
+                    AlertDialog.Builder(patchActivity)
+                    .setTitle(LP("Find Word 🔍", "शब्द खोजें 🔍"))
+                    .setView(findInput)
+                    .setPositiveButton(LP("Search", "खोजें"), function()
                         
-                        if query == "" then
-                            Toast.makeText(patchActivity, LP("Please type something!", "कुछ टाइप तो करो भाई!"), 0).show()
-                            return
-                        end
-
-                        if paraList and paraList.getVisibility() == 0 then
-                            local adapter = paraList.getAdapter()
-                            local foundIndex = -1
+                        local okSearch, errSearch = pcall(function()
+                            local query = string.lower(tostring(findInput.getText() or ""))
                             
-                            if adapter then
-                                for i = 0, adapter.getCount() - 1 do
-                                    local itemText = string.lower(tostring(adapter.getItem(i) or ""))
-                                    if string.find(itemText, query, 1, true) then
-                                        foundIndex = i
-                                        break
+                            if query == "" then
+                                Toast.makeText(patchActivity, LP("Please type something!", "कुछ टाइप तो करो भाई!"), 0).show()
+                                return
+                            end
+
+                            if paraList and paraList.getVisibility() == 0 then
+                                local adapter = paraList.getAdapter()
+                                local foundIndex = -1
+                                
+                                if adapter then
+                                    for i = 0, adapter.getCount() - 1 do
+                                        local itemText = string.lower(tostring(adapter.getItem(i) or ""))
+                                        if string.find(itemText, query, 1, true) then
+                                            foundIndex = i
+                                            break
+                                        end
                                     end
                                 end
-                            end
 
-                            if foundIndex ~= -1 then
-                                paraList.setSelection(foundIndex) 
-                                Toast.makeText(patchActivity, LP("Found at paragraph: ", "मिल गया! पैराग्राफ: ") .. tostring(foundIndex + 1), 0).show()
-                            else
-                                Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
-                            end
+                                if foundIndex ~= -1 then
+                                    paraList.setSelection(foundIndex) 
+                                    Toast.makeText(patchActivity, LP("Found at paragraph: ", "मिल गया! पैराग्राफ: ") .. tostring(foundIndex + 1), 0).show()
+                                else
+                                    Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
+                                end
 
-                        elseif readerBody then
-                            local fullText = string.lower(tostring(readerBody.getText() or ""))
-                            local startPos = string.find(fullText, query, 1, true)
+                            elseif readerBody then
+                                local fullText = string.lower(tostring(readerBody.getText() or ""))
+                                local startPos = string.find(fullText, query, 1, true)
 
-                            if startPos then
-                                readerBody.requestFocus()
-                                readerBody.setSelection(startPos - 1, startPos - 1 + string.len(query))
-                                Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
-                            else
-                                Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
+                                if startPos then
+                                    readerBody.requestFocus()
+                                    readerBody.setSelection(startPos - 1, startPos - 1 + string.len(query))
+                                    Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
+                                else
+                                    Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस नोट में नहीं मिला।"), 0).show()
+                                end
                             end
-                        end
+                        end)
+                        if not okSearch then showErrorBox("Search Error", errSearch) end
+                        
                     end)
-                    if not okSearch then showErrorBox("Search Error", errSearch) end
-                    
+                    .setNegativeButton(LP("Cancel", "रद्द करें"), nil)
+                    .show()
                 end)
-                .setNegativeButton(LP("Cancel", "रद्द करें"), nil)
-                .show()
-            end)
-            if not okFind then showErrorBox("Find Setup Error", errFind) end
+                if not okFind then showErrorBox("Find Setup Error", errFind) end
+            end
+            
+            -- 🔥 सबसे ज़रूरी लाइन: यह OnClick को चलने से रोक देगी! 🔥
+            return true
         end
     })
 end)
