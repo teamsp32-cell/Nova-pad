@@ -1,5 +1,5 @@
 -- Nova Pad - Beta Find Lab 🔬
--- The "Android Native" Fix: TextUtils + SafeLower (No Java String Clash)
+-- The "Android Native" Fix v3: 100% UTF-8 SafeLower + TextUtils
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -15,6 +15,7 @@ local function getPatchLang()
 end
 local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
+-- 🚨 जाल (The Error Catcher Net) 🚨
 local function showErrorBox(title, msg)
     local errInput = EditText(patchActivity)
     errInput.setText(tostring(msg))
@@ -26,16 +27,18 @@ local function showErrorBox(title, msg)
     .show()
 end
 
--- 🔥 जादुई फॉर्मूला: हिंदी सुरक्षित रहेगी, अंग्रेज़ी छोटी हो जाएगी 🔥
+-- 🔥 जादुई फॉर्मूला: %u की जगह [A-Z] लगाया। अब हिंदी के शब्द बिल्कुल नहीं टूटेंगे! 🔥
 local function safeLower(str)
     if not str then return "" end
-    return (string.gsub(tostring(str), "%u", string.lower))
+    -- यह सिर्फ अंग्रेज़ी के A-Z को a-z करेगा, बाकी किसी भाषा को हाथ भी नहीं लगाएगा।
+    return (string.gsub(tostring(str), "[A-Z]", string.lower))
 end
 
 pcall(function()
     btnReaderSearch.setOnClickListener(nil)
 
     btnReaderSearch.onClick = function()
+        -- पहला जाल: फाइंड बॉक्स खोलने के लिए
         local okFind, errFind = pcall(function()
             local findInput = EditText(patchActivity)
             findInput.setHint(LP("Type to search...", "खोजने के लिए यहाँ लिखें..."))
@@ -46,6 +49,7 @@ pcall(function()
             .setView(findInput)
             .setPositiveButton(LP("Search", "खोजें"), function()
                 
+                -- दूसरा जाल: सर्च एग्जीक्यूट करने के लिए
                 local okSearch, errSearch = pcall(function()
                     local rawQuery = tostring(findInput.getText() or "")
                     if rawQuery == "" then
@@ -53,13 +57,13 @@ pcall(function()
                         return
                     end
 
-                    -- 1. सुरक्षित लोअरकेस
+                    -- 1. सुरक्षित लोअरकेस (अब हिंदी के शब्द सुरक्षित हैं)
                     local safeQ = safeLower(rawQuery)
                     
-                    -- 2. एंड्रॉइड का अपना टूल (इसमें लुआ और जावा आपस में नहीं लड़ेंगे)
+                    -- 2. एंड्रॉइड का नेटिव सर्च टूल (TextUtils)
                     import "android.text.TextUtils"
                     
-                    -- 3. सर्च बॉक्स से ही एकदम सटीक लंबाई निकाल ली (No crash guaranteed)
+                    -- 3. सर्च बॉक्स से सटीक जावा कैरेक्टर लंबाई निकाली
                     local qCharLen = findInput.length()
 
                     if paraList and paraList.getVisibility() == 0 then
@@ -97,7 +101,7 @@ pcall(function()
 
                         if startPos >= 0 then
                             readerBody.requestFocus()
-                            -- सही जगह पर कर्सर और सिलेक्शन
+                            -- सही जगह पर कर्सर और सिलेक्शन (Highlight)
                             readerBody.setSelection(startPos, startPos + qCharLen)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
