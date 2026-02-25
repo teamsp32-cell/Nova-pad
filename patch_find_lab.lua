@@ -1,5 +1,5 @@
 -- Nova Pad - Beta Find Lab 🔬
--- The "Pure Lua" Fix: Zero Java, Custom Byte-to-Char Converter
+-- The "Pure Lua" Engine + Smart Voice/Keyboard Auto-Cleanup
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -26,19 +26,35 @@ local function showErrorBox(title, msg)
     .show()
 end
 
--- सिर्फ A-Z को a-z करेगा (हिंदी के बाइट्स सुरक्षित रहेंगे)
+-- 1. सुरक्षित लोअरकेस
 local function safeLower(str)
     if not str then return "" end
     return (string.gsub(tostring(str), "[A-Z]", string.lower))
 end
 
--- 🔥 जादुई कनवर्टर: लुआ की जगह (Bytes) को एंड्रॉइड की जगह (Chars) में बदलता है 🔥
+-- 🔥 2. वाशिंग मशीन (Smart Auto-Cleanup for Voice & Keyboard) 🔥
+local function smartClean(str)
+    if not str then return "" end
+    local s = tostring(str)
+    
+    -- A) वॉइस टाइपिंग के फालतू निशान हटाना (कोमा, डॉट, प्रश्नवाचक आदि)
+    s = string.gsub(s, "[.,?!।]", "") 
+    
+    -- B) आगे-पीछे के स्पेस हटाना (Trim)
+    s = string.gsub(s, "^%s*(.-)%s*$", "%1")
+    
+    -- C) हिंदी की आम स्पेलिंग को एक जैसा करना (Normalization)
+    s = string.gsub(s, "न्द्र", "ंद्र")
+    s = string.gsub(s, "न्त", "ंत")
+    s = string.gsub(s, "न्द", "ंद")
+    
+    return s
+end
+
+-- 3. जादुई कनवर्टर (Bytes to Characters)
 local function getJavaIndices(str, startByte, endByte)
-    local startChar = 0
-    local endChar = 0
-    local chars = 0
-    local i = 1
-    local len = string.len(str)
+    local startChar, endChar, chars = 0, 0, 0
+    local i, len = 1, string.len(str)
     
     while i <= len do
         if i == startByte then startChar = chars end
@@ -48,11 +64,10 @@ local function getJavaIndices(str, startByte, endByte)
         if b >= 0 and b <= 127 then i = i + 1; chars = chars + 1
         elseif b >= 192 and b <= 223 then i = i + 2; chars = chars + 1
         elseif b >= 224 and b <= 239 then i = i + 3; chars = chars + 1
-        elseif b >= 240 and b <= 247 then i = i + 4; chars = chars + 2 -- (Emoji / Surrogate)
+        elseif b >= 240 and b <= 247 then i = i + 4; chars = chars + 2
         else i = i + 1 end
     end
     if endByte >= len then endChar = chars end
-    
     return startChar, endChar
 end
 
@@ -60,9 +75,9 @@ pcall(function()
     btnReaderSearch.setOnClickListener(nil)
 
     btnReaderSearch.onClick = function()
-        local okFind, errFind = pcall(function()
+        pcall(function()
             local findInput = EditText(patchActivity)
-            findInput.setHint(LP("Type to search...", "खोजने के लिए यहाँ लिखें..."))
+            findInput.setHint(LP("Type or use Voice... 🎤", "टाइप करें या बोलें... 🎤"))
             findInput.setTextColor(0xFF000000)
 
             AlertDialog.Builder(patchActivity)
@@ -70,18 +85,18 @@ pcall(function()
             .setView(findInput)
             .setPositiveButton(LP("Search", "खोजें"), function()
                 
-                local okSearch, errSearch = pcall(function()
+                pcall(function()
                     local rawQuery = tostring(findInput.getText() or "")
                     
-                    -- फालतू स्पेस हटाना
-                    local trimmedQuery = string.gsub(rawQuery, "^%s*(.-)%s*$", "%1")
+                    -- 🔥 सर्च करने से पहले शब्द को वाशिंग मशीन में डाला 🔥
+                    local cleanQuery = smartClean(rawQuery)
                     
-                    if trimmedQuery == "" then
+                    if cleanQuery == "" then
                         Toast.makeText(patchActivity, LP("Please type something!", "कुछ टाइप करें!"), 0).show()
                         return
                     end
 
-                    local safeQ = safeLower(trimmedQuery)
+                    local safeQ = safeLower(cleanQuery)
 
                     if paraList and paraList.getVisibility() == 0 then
                         -- पैराग्राफ मोड
@@ -91,9 +106,9 @@ pcall(function()
                         if adapter then
                             for i = 0, adapter.getCount() - 1 do
                                 local itemText = tostring(adapter.getItem(i) or "")
-                                local safeItem = safeLower(itemText)
+                                -- पैराग्राफ को भी साफ़ किया ताकि दोनों मैच हो जाएं
+                                local safeItem = safeLower(smartClean(itemText))
                                 
-                                -- शुद्ध लुआ सर्च! कोई जावा नहीं!
                                 if string.find(safeItem, safeQ, 1, true) then
                                     foundIndex = i
                                     break
@@ -111,15 +126,14 @@ pcall(function()
                     elseif readerBody then
                         -- फुल टेक्स्ट मोड
                         local fullText = tostring(readerBody.getText() or "")
-                        local safeFullText = safeLower(fullText)
+                        -- टेक्स्ट को भी साफ़ किया
+                        local cleanFullText = smartClean(fullText)
+                        local safeFullText = safeLower(cleanFullText)
                         
-                        -- शुद्ध लुआ सर्च: यह हमें बाइट्स की जगह देगा
                         local startByte, endByte = string.find(safeFullText, safeQ, 1, true)
 
                         if startByte and endByte then
-                            -- 🔥 बाइट्स को एंड्रॉइड के अक्षरों में बदल दिया 🔥
-                            local startChar, endChar = getJavaIndices(fullText, startByte, endByte)
-                            
+                            local startChar, endChar = getJavaIndices(cleanFullText, startByte, endByte)
                             readerBody.requestFocus()
                             readerBody.setSelection(startChar, endChar)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
@@ -128,11 +142,9 @@ pcall(function()
                         end
                     end
                 end)
-                if not okSearch then showErrorBox("Search Execution Error", errSearch) end
             end)
             .setNegativeButton(LP("Cancel", "रद्द करें"), nil)
             .show()
         end)
-        if not okFind then showErrorBox("Find Setup Error", errFind) end
     end
 end)
