@@ -1,15 +1,10 @@
 -- Nova Pad - Smart Dhyan & Radio Module 🎧
--- Cloud Controlled Audio Player (100% Working HTTPS Links)
+-- 100% Bulletproof Audio Player (Fresh Instance Every Time)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
 
 local MediaPlayer = luajava.bindClass("android.media.MediaPlayer")
-
--- ग्लोबल प्लेयर (ताकि बैकग्राउंड में बजता रहे)
-if not _G.novaRadioPlayer then
-    _G.novaRadioPlayer = MediaPlayer()
-end
 
 local function getPatchLang()
     local lang = "en"
@@ -22,7 +17,7 @@ local function getPatchLang()
 end
 local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
--- 📻 3 पुराने ऑडिओज़ + 100% वर्किंग सुरक्षित (HTTPS) लाइव रेडियो की मास्टर लिस्ट
+-- 📻 3 पुराने ऑडिओज़ + 100% वर्किंग सुरक्षित (HTTPS) लाइव रेडियो 
 local radioStations = {
     {name = "🛑 " .. LP("Stop Music", "म्यूजिक बंद करें"), url = "STOP"},
     
@@ -62,50 +57,49 @@ _G.showAmbientMenu = function()
             local selected = radioStations[position + 1]
             
             if selected.url == "STOP" then
-                -- अगर ऐप का पुराना प्लेयर चल रहा है, तो उसे भी चुपचाप बंद कर दो
-                pcall(function() if mediaPlayer and mediaPlayer.isPlaying() then mediaPlayer.stop() end end)
-                
-                if _G.novaRadioPlayer:isPlaying() then
-                    _G.novaRadioPlayer:stop()
-                end
-                _G.novaRadioPlayer:reset()
+                -- किसी भी पुराने प्लेयर को पूरी तरह से नष्ट (Kill) करो
+                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer:stop(); _G.novaRadioPlayer:release(); _G.novaRadioPlayer = nil end end)
                 local msg = LP("Music Stopped 🛑", "म्यूजिक बंद कर दिया गया 🛑")
                 Toast.makeText(patchActivity, msg, 0).show()
-                list.announceForAccessibility(msg) -- TalkBack सपोर्ट
+                list.announceForAccessibility(msg) 
                 dlg.dismiss()
                 return
             end
 
-            local startMsg = LP("Connecting to " .. selected.name .. " ⏳", selected.name .. " शुरू हो रहा है... ⏳")
+            local startMsg = LP("Connecting to " .. selected.name .. " ⏳", selected.name .. " लोड हो रहा है... ⏳")
             Toast.makeText(patchActivity, startMsg, 0).show()
             list.announceForAccessibility(startMsg)
             
             pcall(function()
-                -- नया चलाने से पहले पुराने वाले सारे प्लेयर बंद करो
-                pcall(function() if mediaPlayer and mediaPlayer.isPlaying() then mediaPlayer.stop() end end)
+                -- 1. पुराने प्लेयर को पूरी तरह से बंद और नष्ट करो
+                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer:stop(); _G.novaRadioPlayer:release(); _G.novaRadioPlayer = nil end end)
                 
-                if _G.novaRadioPlayer:isPlaying() then _G.novaRadioPlayer:stop() end
-                _G.novaRadioPlayer:reset()
-                _G.novaRadioPlayer:setDataSource(selected.url)
-                _G.novaRadioPlayer:prepareAsync()
+                -- 2. बिल्कुल नया फ्रेश प्लेयर बनाओ
+                local freshPlayer = MediaPlayer()
+                _G.novaRadioPlayer = freshPlayer
                 
-                _G.novaRadioPlayer:setOnPreparedListener(MediaPlayer.OnPreparedListener{
+                freshPlayer:setDataSource(selected.url)
+                
+                -- 3. लिस्नर (Listener) को prepareAsync से **पहले** सेट करना बहुत ज़रूरी है!
+                freshPlayer:setOnPreparedListener(MediaPlayer.OnPreparedListener{
                     onPrepared = function(mp)
-                        -- 🔥 वॉल्यूम 20% सेट किया ताकि TalkBack बिल्कुल साफ सुनाई दे!
                         mp:setVolume(0.2, 0.2)
-                        mp:setLooping(true) -- फाइल खत्म होने पर अपने आप दोबारा शुरू हो जाएगी
+                        mp:setLooping(true) 
                         mp:start()
                         local playMsg = LP("🎶 Playing: " .. selected.name, "🎶 बजना शुरू: " .. selected.name)
                         Toast.makeText(patchActivity, playMsg, 0).show()
                     end
                 })
                 
-                _G.novaRadioPlayer:setOnErrorListener(MediaPlayer.OnErrorListener{
-                    onError=function(mp, what, extra) 
-                        Toast.makeText(patchActivity, LP("Audio Fail! Check Internet.", "ऑडियो फेल! इंटरनेट चेक करें।"), 0).show()
+                freshPlayer:setOnErrorListener(MediaPlayer.OnErrorListener{
+                    onError = function(mp, what, extra) 
+                        Toast.makeText(patchActivity, LP("Audio Fail! Error Code: ", "ऑडियो फेल! एरर कोड: ") .. tostring(what), 1).show()
                         return true 
                     end
                 })
+                
+                -- 4. अब आख़िर में लोड करना शुरू करो
+                freshPlayer:prepareAsync()
             end)
             dlg.dismiss()
         end
