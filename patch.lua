@@ -59,16 +59,17 @@ pcall(function()
     -- ✅ यह फाइल्स सबको मिलेंगी (Public + Beta)
     table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tts.lua")
     table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_notify.lua")
+    table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_stable_ui.lua")
+    table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tools.lua")
 
-    -- 🔥 असली फिक्स यहाँ है (If / Else Logic) 🔥
+    -- 🔥 बीटा और पब्लिक का अलग-अलग रास्ता 🔥
     if isBetaUser then
-        -- 🔬 सिर्फ बीटा टेस्टर्स के लिए (Find Lab)
+        -- 🔬 सिर्फ बीटा टेस्टर्स के लिए (Find Lab और Beta Test)
         table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find_lab.lua")
         table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_beta_test.lua")
         Toast.makeText(patchActivity, "🛠️ Master: Beta Channel Loaded", 0).show()
     else
-        -- 🌍 सिर्फ आम यूज़र्स के लिए (Maintenance Mode)
-        -- अब बीटा यूज़र्स को यह मेंटेनेंस फाइल मिलेगी ही नहीं!
+        -- 🌍 सिर्फ आम यूज़र्स के लिए (Stable Find)
         table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find.lua") 
     end
 
