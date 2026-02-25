@@ -1,10 +1,11 @@
 -- Nova Pad - Smart Dhyan & Radio Module 🎧
--- GC-Proof Audio Player (Fixes Silent Crash & Loading Issues)
+-- 100% Working (Fixed AndroLua Import Bug)
+
+require "import"
+import "android.media.MediaPlayer"
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
-
-local MediaPlayer = luajava.bindClass("android.media.MediaPlayer")
 
 local function getPatchLang()
     local lang = "en"
@@ -52,7 +53,10 @@ _G.showAmbientMenu = function()
             local selected = radioStations[position + 1]
             
             if selected.url == "STOP" then
-                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer:stop(); _G.novaRadioPlayer:release(); _G.novaRadioPlayer = nil end end)
+                -- मेन ऐप और पैच दोनों के प्लेयर बंद करो
+                pcall(function() if _G.mediaPlayer then _G.mediaPlayer.stop(); _G.mediaPlayer.release(); _G.mediaPlayer = nil end end)
+                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer.stop(); _G.novaRadioPlayer.release(); _G.novaRadioPlayer = nil end end)
+                
                 local msg = LP("Music Stopped 🛑", "म्यूजिक बंद कर दिया गया 🛑")
                 Toast.makeText(patchActivity, msg, 0).show()
                 list.announceForAccessibility(msg) 
@@ -65,39 +69,36 @@ _G.showAmbientMenu = function()
             list.announceForAccessibility(startMsg)
             
             pcall(function()
-                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer:stop(); _G.novaRadioPlayer:release(); _G.novaRadioPlayer = nil end end)
+                -- पुराने सभी प्लेयर किल करो
+                pcall(function() if _G.mediaPlayer then _G.mediaPlayer.stop(); _G.mediaPlayer.release(); _G.mediaPlayer = nil end end)
+                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer.stop(); _G.novaRadioPlayer.release(); _G.novaRadioPlayer = nil end end)
                 
-                local freshPlayer = MediaPlayer()
-                _G.novaRadioPlayer = freshPlayer
+                -- नया प्लेयर बनाओ (अब 'import' की वजह से लिस्नर काम करेंगे!)
+                _G.novaRadioPlayer = MediaPlayer()
+                _G.novaRadioPlayer.setDataSource(selected.url)
+                _G.novaRadioPlayer.setAudioStreamType(3)
                 
-                freshPlayer:setDataSource(selected.url)
-                freshPlayer:setAudioStreamType(3) -- STREAM_MUSIC फिक्स
-                
-                -- 🔥 THE FIX: लिस्नर्स को GLOBAL (_G) कर दिया ताकि डिलीट न हों 🔥
-                _G.radioPrepListener = MediaPlayer.OnPreparedListener{
+                _G.novaRadioPlayer.setOnPreparedListener(MediaPlayer.OnPreparedListener{
                     onPrepared = function(mp)
-                        mp:setVolume(0.2, 0.2)
-                        mp:setLooping(true) 
-                        mp:start()
+                        mp.setVolume(0.2, 0.2)
+                        mp.setLooping(true) 
+                        mp.start()
                         local playMsg = LP("🎶 Playing: " .. selected.name, "🎶 बजना शुरू: " .. selected.name)
                         Toast.makeText(patchActivity, playMsg, 0).show()
                         list.announceForAccessibility(playMsg)
                     end
-                }
+                })
                 
-                _G.radioErrListener = MediaPlayer.OnErrorListener{
+                _G.novaRadioPlayer.setOnErrorListener(MediaPlayer.OnErrorListener{
                     onError = function(mp, what, extra) 
-                        local errMsg = LP("Audio Error: ", "ऑडियो एरर: ") .. tostring(what)
+                        local errMsg = LP("Audio Error. Check Internet.", "ऑडियो एरर! इंटरनेट चेक करें।")
                         Toast.makeText(patchActivity, errMsg, 1).show()
                         list.announceForAccessibility(errMsg)
                         return true 
                     end
-                }
+                })
                 
-                freshPlayer:setOnPreparedListener(_G.radioPrepListener)
-                freshPlayer:setOnErrorListener(_G.radioErrListener)
-                
-                freshPlayer:prepareAsync()
+                _G.novaRadioPlayer.prepareAsync()
             end)
             dlg.dismiss()
         end
