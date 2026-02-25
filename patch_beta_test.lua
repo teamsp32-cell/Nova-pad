@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- सारे फीचर्स अपनी सही जगह पर सेट किए गए हैं!
+-- 'Find' बटन पर लॉन्ग-प्रेस करके 'Jump' खोलें!
 
 require "import"
 import "android.view.*"
@@ -95,21 +95,21 @@ local function openStructureJumperReader()
         currentPos = currentPos + #line + 1
     end
     
+    if #lines == 0 then Toast.makeText(patchActivity, "कोई पैराग्राफ नहीं मिला!", 0).show() return end
+    
     local lv = ListView(patchActivity)
     lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, lines))
     
-    local dlg = AlertDialog.Builder(patchActivity).setTitle("🗺️ पैराग्राफ चुनें").setView(lv).setNegativeButton("बंद करें", nil).show()
+    local dlg = AlertDialog.Builder(patchActivity).setTitle("🗺️ पैराग्राफ जम्पर").setView(lv).setNegativeButton("बंद करें", nil).show()
     
     lv.setOnItemClickListener(AdapterView.OnItemClickListener{
         onItemClick = function(parent, view, position, id)
             dlg.dismiss()
             if scrollFullText and scrollFullText.getVisibility() == 0 then
-                -- अगर फुल टेक्स्ट मोड है, तो कर्सर को वहाँ ले जाओ
                 readerBody.requestFocus()
                 readerBody.setSelection(positions[position + 1])
                 Toast.makeText(patchActivity, "लाइन चुनी गई!", 0).show()
             elseif paraList and paraList.getVisibility() == 0 then
-                -- अगर पैराग्राफ स्क्रॉल मोड है
                 paraList.setSelection(position)
                 Toast.makeText(patchActivity, "पैराग्राफ सेट हो गया!", 0).show()
             end
@@ -117,22 +117,15 @@ local function openStructureJumperReader()
     })
 end
 
--- 📌 रीडर बार में "Jump" बटन जोड़ना
+-- 🔥 THE FIX: 'Find' बटन पर Long-Press जम्पर सेट कर दिया 🔥
 pcall(function()
-    if readerBar and not _G.jumperAdded then
-        local btnJumper = Button(patchActivity)
-        btnJumper.setText("Jump")
-        btnJumper.setTextSize(10)
-        btnJumper.setTextColor(0xFF6200EE)
-        local params = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0)
-        btnJumper.setLayoutParams(params)
-        
-        btnJumper.setOnClickListener(View.OnClickListener{
-            onClick = function() openStructureJumperReader() end
+    if btnReaderSearch then
+        btnReaderSearch.setOnLongClickListener(View.OnLongClickListener{
+            onLongClick = function()
+                openStructureJumperReader()
+                return true -- true मतलब लॉन्ग-प्रेस का काम पूरा हो गया
+            end
         })
-        
-        readerBar.addView(btnJumper, 3) -- Find बटन के आस-पास जोड़ दिया
-        _G.jumperAdded = true
     end
 end)
 
@@ -141,6 +134,7 @@ end)
 -- ==========================================
 pcall(function()
     if btnReaderCopy then
+        btnReaderCopy.setOnClickListener(nil)
         btnReaderCopy.setOnClickListener(View.OnClickListener{
             onClick = function()
                 local textToCopy = _G.currentFullText or ""
@@ -159,7 +153,6 @@ pcall(function()
                         end
                     })
                 else
-                    -- नॉर्मल कॉपी
                     patchActivity.getSystemService(Context.CLIPBOARD_SERVICE).setPrimaryClip(ClipData.newPlainText("Nova", textToCopy))
                     Toast.makeText(patchActivity, "पूरा टेक्स्ट कॉपी हो गया!", 0).show()
                 end
@@ -238,7 +231,6 @@ local function toggleVolumeNav()
     end
 end
 
--- तुम्हारे पुराने स्मार्ट टूल्स फंक्शन को पूरी तरह ओवरराइड कर रहे हैं
 _G.openSmartTextCleaner = function()
     local cbStatus = _G.smartClipboardEnabled and "ON 🟢" or "OFF 🔴"
     local volStatus = _G.volNavEnabled and "ON 🟢" or "OFF 🔴"
@@ -275,4 +267,4 @@ _G.openSmartTextCleaner = function()
     })
 end
 
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded!", 0).show()
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Find बटन लॉन्ग-प्रेस करें)", 1).show()
