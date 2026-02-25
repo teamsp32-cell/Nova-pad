@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- 'Find' बटन पर लॉन्ग-प्रेस करके 'Jump' खोलें!
+-- जम्पर और कॉपी बटन के लिए 'Direct UI Text Fetching' फिक्स!
 
 require "import"
 import "android.view.*"
@@ -17,6 +17,28 @@ _G.betaClipboard = _G.betaClipboard or {"[खाली]", "[खाली]", "[�
 _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
 _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
+
+-- 🔍 स्क्रीन से टेक्स्ट उठाने का मास्टर फंक्शन
+local function getVisibleText()
+    local text = ""
+    -- 1. सबसे पहले रीडर मोड की स्क्रीन से उठाने की कोशिश करो
+    pcall(function()
+        if readerBody and readerBody.getText() then
+            text = readerBody.getText().toString()
+        end
+    end)
+    -- 2. अगर वह खाली है, तो ग्लोबल वेरिएबल चेक करो
+    if text == "" and _G.currentFullText then text = _G.currentFullText end
+    -- 3. अगर वह भी खाली है, तो सीधे एडिटर से उठा लो
+    if text == "" then
+        pcall(function()
+            if noteEditor and noteEditor.getText() then
+                text = noteEditor.getText().toString()
+            end
+        end)
+    end
+    return text
+end
 
 -- ==========================================
 -- 1. 📋 स्मार्ट क्लिपबोर्ड मैनेजर
@@ -78,8 +100,8 @@ end
 -- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Paragraph Finder)
 -- ==========================================
 local function openStructureJumperReader()
-    local text = _G.currentFullText or ""
-    if #text == 0 then Toast.makeText(patchActivity, "टेक्स्ट खाली है!", 0).show() return end
+    local text = getVisibleText() -- 🔥 यहाँ नया फिक्स लगा दिया है
+    if #text:gsub("%s+", "") == 0 then Toast.makeText(patchActivity, "टेक्स्ट खाली है!", 0).show() return end
     
     local lines = {}
     local positions = {}
@@ -123,7 +145,7 @@ pcall(function()
         btnReaderSearch.setOnLongClickListener(View.OnLongClickListener{
             onLongClick = function()
                 openStructureJumperReader()
-                return true -- true मतलब लॉन्ग-प्रेस का काम पूरा हो गया
+                return true
             end
         })
     end
@@ -137,7 +159,12 @@ pcall(function()
         btnReaderCopy.setOnClickListener(nil)
         btnReaderCopy.setOnClickListener(View.OnClickListener{
             onClick = function()
-                local textToCopy = _G.currentFullText or ""
+                local textToCopy = getVisibleText() -- 🔥 यहाँ भी फिक्स लगा दिया है
+                
+                if #textToCopy:gsub("%s+", "") == 0 then
+                    Toast.makeText(patchActivity, "कॉपी करने के लिए कुछ नहीं है!", 0).show()
+                    return
+                end
                 
                 if _G.smartClipboardEnabled then
                     local opts = {"स्लॉट 1 में सेव करें", "स्लॉट 2 में सेव करें", "स्लॉट 3 में सेव करें"}
@@ -267,4 +294,4 @@ _G.openSmartTextCleaner = function()
     })
 end
 
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Find बटन लॉन्ग-प्रेस करें)", 1).show()
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Text Sync Fixed)", 1).show()
