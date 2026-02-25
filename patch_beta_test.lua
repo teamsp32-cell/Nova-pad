@@ -1,11 +1,12 @@
 -- 🚀 NOVA PAD BETA HUB (5-in-1 Super Patch) 🚀
--- सिर्फ Beta यूज़र्स के लिए
+-- सिर्फ Beta यूज़र्स के लिए (Menu बटन लॉन्ग-प्रेस)
 
 require "import"
 import "android.view.*"
 import "android.widget.*"
 import "android.app.AlertDialog"
 import "android.graphics.Color"
+import "java.lang.System"
 
 local patchActivity = activity
 
@@ -51,6 +52,8 @@ local function openMultiClipboard()
                         local endSel = noteEditor.getSelectionEnd()
                         if startSel ~= endSel then
                             selectedText = string.sub(selectedText, startSel + 1, endSel)
+                        else
+                            Toast.makeText(patchActivity, "पूरा टेक्स्ट कॉपी हो रहा है...", 0).show()
                         end
                         _G.betaClipboard[slotIndex] = selectedText
                         Toast.makeText(patchActivity, "स्लॉट " .. slotIndex .. " में सेव हो गया!", 0).show()
@@ -103,7 +106,6 @@ end
 -- 3. 🧹 स्मार्ट टेक्स्ट क्लीनर
 local function cleanTextSmartly()
     local text = noteEditor.getText().toString()
-    -- फालतू स्पेस हटाना और खाली लाइनों को कम करना
     local cleanText = text:gsub(" +", " "):gsub("\n%s*\n+", "\n\n")
     noteEditor.setText(cleanText)
     Toast.makeText(patchActivity, "✨ टेक्स्ट एकदम साफ कर दिया गया!", 0).show()
@@ -121,13 +123,12 @@ local function toggleCurtain()
         _G.curtainView.setBackgroundColor(Color.BLACK)
         _G.curtainView.setClickable(true)
         
-        -- डबल टैप से कर्टेन हटाना
         local lastClickTime = 0
         _G.curtainView.setOnClickListener(View.OnClickListener{
             onClick = function()
                 local clickTime = System.currentTimeMillis()
                 if clickTime - lastClickTime < 300 then
-                    toggleCurtain() -- डबल टैप डिटेक्ट हुआ
+                    toggleCurtain() 
                 end
                 lastClickTime = clickTime
             end
@@ -143,11 +144,10 @@ end
 local function toggleVolumeNav()
     _G.volNavEnabled = not _G.volNavEnabled
     if _G.volNavEnabled then
-        -- पुराना onKeyDown सेव करें ताकि बैक बटन काम करता रहे
         if not _G.old_onKeyDown then _G.old_onKeyDown = onKeyDown end
         _G.onKeyDown = function(code, event)
             if _G.volNavEnabled and noteEditor.isFocused() then
-                if code == 24 then -- Volume UP
+                if code == 24 then 
                     local layout = noteEditor.getLayout()
                     if layout then
                         local currentLine = layout.getLineForOffset(noteEditor.getSelectionStart())
@@ -156,7 +156,7 @@ local function toggleVolumeNav()
                             return true
                         end
                     end
-                elseif code == 25 then -- Volume DOWN
+                elseif code == 25 then 
                     local layout = noteEditor.getLayout()
                     if layout then
                         local currentLine = layout.getLineForOffset(noteEditor.getSelectionStart())
@@ -207,21 +207,16 @@ local function openBetaHub()
     })
 end
 
--- 🚀 टॉप बार में "Beta 🧪" बटन जोड़ना
+-- 🚀 THE FIX: 'Menu' बटन के लॉन्ग-प्रेस पर बीटा हब लगाना
 pcall(function()
-    if topBar and not _G.betaButtonAdded then
-        local betaBtn = TextView(patchActivity)
-        betaBtn.setText("Beta 🧪")
-        betaBtn.setTextColor(Color.WHITE)
-        betaBtn.setTextSize(14)
-        betaBtn.setPadding(15, 0, 15, 0)
-        betaBtn.setGravity(android.view.Gravity.CENTER)
-        
-        betaBtn.setOnClickListener(View.OnClickListener{
-            onClick = function() openBetaHub() end
+    if btnMenuTop then
+        btnMenuTop.setOnLongClickListener(View.OnLongClickListener{
+            onLongClick = function(v)
+                openBetaHub()
+                return true -- true का मतलब है कि लॉन्ग-प्रेस का काम हो गया
+            end
         })
-        
-        topBar.addView(betaBtn, 1) -- 'Menu' बटन के ठीक बाद जोड़ दिया
-        _G.betaButtonAdded = true
+        -- जैसे ही पैच लोड होगा, यह मैसेज आएगा!
+        Toast.makeText(patchActivity, "🧪 Beta पैच लोड हो गया! 'Menu' बटन को लॉन्ग-प्रेस करें।", 1).show()
     end
 end)
