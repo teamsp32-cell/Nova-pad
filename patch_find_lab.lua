@@ -1,5 +1,5 @@
 -- Nova Pad - Beta Find Lab 🔬
--- The "Pure Java String" Fix (UTF-8 Safe, Auto-Trim & Exact Indexing)
+-- The "Pure Lua" Fix: Zero Java, Custom Byte-to-Char Converter
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -26,6 +26,36 @@ local function showErrorBox(title, msg)
     .show()
 end
 
+-- सिर्फ A-Z को a-z करेगा (हिंदी के बाइट्स सुरक्षित रहेंगे)
+local function safeLower(str)
+    if not str then return "" end
+    return (string.gsub(tostring(str), "[A-Z]", string.lower))
+end
+
+-- 🔥 जादुई कनवर्टर: लुआ की जगह (Bytes) को एंड्रॉइड की जगह (Chars) में बदलता है 🔥
+local function getJavaIndices(str, startByte, endByte)
+    local startChar = 0
+    local endChar = 0
+    local chars = 0
+    local i = 1
+    local len = string.len(str)
+    
+    while i <= len do
+        if i == startByte then startChar = chars end
+        if i == endByte + 1 then endChar = chars; break end
+        
+        local b = string.byte(str, i)
+        if b >= 0 and b <= 127 then i = i + 1; chars = chars + 1
+        elseif b >= 192 and b <= 223 then i = i + 2; chars = chars + 1
+        elseif b >= 224 and b <= 239 then i = i + 3; chars = chars + 1
+        elseif b >= 240 and b <= 247 then i = i + 4; chars = chars + 2 -- (Emoji / Surrogate)
+        else i = i + 1 end
+    end
+    if endByte >= len then endChar = chars end
+    
+    return startChar, endChar
+end
+
 pcall(function()
     btnReaderSearch.setOnClickListener(nil)
 
@@ -43,7 +73,7 @@ pcall(function()
                 local okSearch, errSearch = pcall(function()
                     local rawQuery = tostring(findInput.getText() or "")
                     
-                    -- 1. TRIM: शब्द के आगे-पीछे के फालतू स्पेस हटाना
+                    -- फालतू स्पेस हटाना
                     local trimmedQuery = string.gsub(rawQuery, "^%s*(.-)%s*$", "%1")
                     
                     if trimmedQuery == "" then
@@ -51,13 +81,7 @@ pcall(function()
                         return
                     end
 
-                    -- 2. SAFE LOWER: सिर्फ A-Z को a-z में बदलना (हिंदी एकदम सुरक्षित)
-                    local safeQ = string.gsub(trimmedQuery, "[A-Z]", string.lower)
-                    
-                    -- 3. PURE JAVA BINDING: अब सब कुछ शुद्ध जावा के हवाले!
-                    local JString = luajava.bindClass("java.lang.String")
-                    local jQuery = JString(safeQ)
-                    local qLen = jQuery:length()
+                    local safeQ = safeLower(trimmedQuery)
 
                     if paraList and paraList.getVisibility() == 0 then
                         -- पैराग्राफ मोड
@@ -67,13 +91,10 @@ pcall(function()
                         if adapter then
                             for i = 0, adapter.getCount() - 1 do
                                 local itemText = tostring(adapter.getItem(i) or "")
-                                local safeItem = string.gsub(itemText, "[A-Z]", string.lower)
+                                local safeItem = safeLower(itemText)
                                 
-                                -- शुद्ध जावा का ऑब्जेक्ट
-                                local jItem = JString(safeItem)
-                                
-                                -- शुद्ध जावा का सटीक सर्च
-                                if jItem:indexOf(jQuery) >= 0 then
+                                -- शुद्ध लुआ सर्च! कोई जावा नहीं!
+                                if string.find(safeItem, safeQ, 1, true) then
                                     foundIndex = i
                                     break
                                 end
@@ -90,18 +111,17 @@ pcall(function()
                     elseif readerBody then
                         -- फुल टेक्स्ट मोड
                         local fullText = tostring(readerBody.getText() or "")
-                        local safeFullText = string.gsub(fullText, "[A-Z]", string.lower)
+                        local safeFullText = safeLower(fullText)
                         
-                        -- शुद्ध जावा का ऑब्जेक्ट
-                        local jFullText = JString(safeFullText)
-                        
-                        -- शुद्ध जावा का सटीक इंडेक्स सर्च
-                        local startPos = jFullText:indexOf(jQuery)
+                        -- शुद्ध लुआ सर्च: यह हमें बाइट्स की जगह देगा
+                        local startByte, endByte = string.find(safeFullText, safeQ, 1, true)
 
-                        if startPos >= 0 then
+                        if startByte and endByte then
+                            -- 🔥 बाइट्स को एंड्रॉइड के अक्षरों में बदल दिया 🔥
+                            local startChar, endChar = getJavaIndices(fullText, startByte, endByte)
+                            
                             readerBody.requestFocus()
-                            -- बिल्कुल सटीक कैरेक्टर पर कर्सर और हाईलाइट
-                            readerBody.setSelection(startPos, startPos + qLen)
+                            readerBody.setSelection(startChar, endChar)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
                             Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
