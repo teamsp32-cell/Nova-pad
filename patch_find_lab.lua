@@ -1,5 +1,5 @@
 -- Nova Pad - Beta Find Lab 🔬
--- The "Android Native" Fix v3: 100% UTF-8 SafeLower + TextUtils
+-- The "Pure Java String" Fix (UTF-8 Safe, Auto-Trim & Exact Indexing)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -15,7 +15,6 @@ local function getPatchLang()
 end
 local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
--- 🚨 जाल (The Error Catcher Net) 🚨
 local function showErrorBox(title, msg)
     local errInput = EditText(patchActivity)
     errInput.setText(tostring(msg))
@@ -27,18 +26,10 @@ local function showErrorBox(title, msg)
     .show()
 end
 
--- 🔥 जादुई फॉर्मूला: %u की जगह [A-Z] लगाया। अब हिंदी के शब्द बिल्कुल नहीं टूटेंगे! 🔥
-local function safeLower(str)
-    if not str then return "" end
-    -- यह सिर्फ अंग्रेज़ी के A-Z को a-z करेगा, बाकी किसी भाषा को हाथ भी नहीं लगाएगा।
-    return (string.gsub(tostring(str), "[A-Z]", string.lower))
-end
-
 pcall(function()
     btnReaderSearch.setOnClickListener(nil)
 
     btnReaderSearch.onClick = function()
-        -- पहला जाल: फाइंड बॉक्स खोलने के लिए
         local okFind, errFind = pcall(function()
             local findInput = EditText(patchActivity)
             findInput.setHint(LP("Type to search...", "खोजने के लिए यहाँ लिखें..."))
@@ -49,22 +40,24 @@ pcall(function()
             .setView(findInput)
             .setPositiveButton(LP("Search", "खोजें"), function()
                 
-                -- दूसरा जाल: सर्च एग्जीक्यूट करने के लिए
                 local okSearch, errSearch = pcall(function()
                     local rawQuery = tostring(findInput.getText() or "")
-                    if rawQuery == "" then
+                    
+                    -- 1. TRIM: शब्द के आगे-पीछे के फालतू स्पेस हटाना
+                    local trimmedQuery = string.gsub(rawQuery, "^%s*(.-)%s*$", "%1")
+                    
+                    if trimmedQuery == "" then
                         Toast.makeText(patchActivity, LP("Please type something!", "कुछ टाइप करें!"), 0).show()
                         return
                     end
 
-                    -- 1. सुरक्षित लोअरकेस (अब हिंदी के शब्द सुरक्षित हैं)
-                    local safeQ = safeLower(rawQuery)
+                    -- 2. SAFE LOWER: सिर्फ A-Z को a-z में बदलना (हिंदी एकदम सुरक्षित)
+                    local safeQ = string.gsub(trimmedQuery, "[A-Z]", string.lower)
                     
-                    -- 2. एंड्रॉइड का नेटिव सर्च टूल (TextUtils)
-                    import "android.text.TextUtils"
-                    
-                    -- 3. सर्च बॉक्स से सटीक जावा कैरेक्टर लंबाई निकाली
-                    local qCharLen = findInput.length()
+                    -- 3. PURE JAVA BINDING: अब सब कुछ शुद्ध जावा के हवाले!
+                    local JString = luajava.bindClass("java.lang.String")
+                    local jQuery = JString(safeQ)
+                    local qLen = jQuery:length()
 
                     if paraList and paraList.getVisibility() == 0 then
                         -- पैराग्राफ मोड
@@ -74,10 +67,13 @@ pcall(function()
                         if adapter then
                             for i = 0, adapter.getCount() - 1 do
                                 local itemText = tostring(adapter.getItem(i) or "")
-                                local safeItem = safeLower(itemText)
+                                local safeItem = string.gsub(itemText, "[A-Z]", string.lower)
                                 
-                                -- TextUtils सीधा सटीक जगह खोज निकालेगा
-                                if TextUtils.indexOf(safeItem, safeQ) >= 0 then
+                                -- शुद्ध जावा का ऑब्जेक्ट
+                                local jItem = JString(safeItem)
+                                
+                                -- शुद्ध जावा का सटीक सर्च
+                                if jItem:indexOf(jQuery) >= 0 then
                                     foundIndex = i
                                     break
                                 end
@@ -94,15 +90,18 @@ pcall(function()
                     elseif readerBody then
                         -- फुल टेक्स्ट मोड
                         local fullText = tostring(readerBody.getText() or "")
-                        local safeFullText = safeLower(fullText)
+                        local safeFullText = string.gsub(fullText, "[A-Z]", string.lower)
                         
-                        -- यह एंड्रॉइड का नेटिव टूल हमें एकदम सही कैरेक्टर की जगह देगा
-                        local startPos = TextUtils.indexOf(safeFullText, safeQ)
+                        -- शुद्ध जावा का ऑब्जेक्ट
+                        local jFullText = JString(safeFullText)
+                        
+                        -- शुद्ध जावा का सटीक इंडेक्स सर्च
+                        local startPos = jFullText:indexOf(jQuery)
 
                         if startPos >= 0 then
                             readerBody.requestFocus()
-                            -- सही जगह पर कर्सर और सिलेक्शन (Highlight)
-                            readerBody.setSelection(startPos, startPos + qCharLen)
+                            -- बिल्कुल सटीक कैरेक्टर पर कर्सर और हाईलाइट
+                            readerBody.setSelection(startPos, startPos + qLen)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
                             Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
