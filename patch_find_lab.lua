@@ -1,5 +1,5 @@
 -- Nova Pad - Beta Find Lab 🔬
--- The "Ultimate Hybrid" Fix: SafeLower + Java String IndexOf
+-- The "Android Native" Fix: TextUtils + SafeLower (No Java String Clash)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -26,17 +26,15 @@ local function showErrorBox(title, msg)
     .show()
 end
 
--- 🔥 जादुई फॉर्मूला: सिर्फ अंग्रेज़ी (A-Z) को छोटा करेगा, हिंदी को एकदम सुरक्षित रखेगा! 🔥
+-- 🔥 जादुई फॉर्मूला: हिंदी सुरक्षित रहेगी, अंग्रेज़ी छोटी हो जाएगी 🔥
 local function safeLower(str)
     if not str then return "" end
     return (string.gsub(tostring(str), "%u", string.lower))
 end
 
 pcall(function()
-    -- 🚨 पुराने लिसनर को पूरी तरह मिटाने के लिए 🚨
     btnReaderSearch.setOnClickListener(nil)
 
-    -- नया 'हार्ड-ओवरराइट' जाल
     btnReaderSearch.onClick = function()
         local okFind, errFind = pcall(function()
             local findInput = EditText(patchActivity)
@@ -55,13 +53,14 @@ pcall(function()
                         return
                     end
 
-                    -- 1. सुरक्षित तरीके से शब्द को छोटा किया (हिंदी सुरक्षित रहेगी)
+                    -- 1. सुरक्षित लोअरकेस
                     local safeQ = safeLower(rawQuery)
                     
-                    -- 2. जावा के बेसिक String का इस्तेमाल (कोई जटिल Regex नहीं)
-                    local JString = luajava.bindClass("java.lang.String")
-                    local jQuery = JString(safeQ)
-                    local qCharLen = jQuery:length()
+                    -- 2. एंड्रॉइड का अपना टूल (इसमें लुआ और जावा आपस में नहीं लड़ेंगे)
+                    import "android.text.TextUtils"
+                    
+                    -- 3. सर्च बॉक्स से ही एकदम सटीक लंबाई निकाल ली (No crash guaranteed)
+                    local qCharLen = findInput.length()
 
                     if paraList and paraList.getVisibility() == 0 then
                         -- पैराग्राफ मोड
@@ -72,10 +71,9 @@ pcall(function()
                             for i = 0, adapter.getCount() - 1 do
                                 local itemText = tostring(adapter.getItem(i) or "")
                                 local safeItem = safeLower(itemText)
-                                local jItem = JString(safeItem)
                                 
-                                -- शुद्ध जावा का indexOf (सटीक कैरेक्टर मैच)
-                                if jItem:indexOf(safeQ) >= 0 then
+                                -- TextUtils सीधा सटीक जगह खोज निकालेगा
+                                if TextUtils.indexOf(safeItem, safeQ) >= 0 then
                                     foundIndex = i
                                     break
                                 end
@@ -93,14 +91,13 @@ pcall(function()
                         -- फुल टेक्स्ट मोड
                         local fullText = tostring(readerBody.getText() or "")
                         local safeFullText = safeLower(fullText)
-                        local jFullText = JString(safeFullText)
                         
-                        -- यह हमें एकदम सटीक 'कैरेक्टर' की जगह (Index) देगा
-                        local startPos = jFullText:indexOf(safeQ)
+                        -- यह एंड्रॉइड का नेटिव टूल हमें एकदम सही कैरेक्टर की जगह देगा
+                        local startPos = TextUtils.indexOf(safeFullText, safeQ)
 
                         if startPos >= 0 then
                             readerBody.requestFocus()
-                            -- बिल्कुल सही जगह पर सिलेक्शन
+                            -- सही जगह पर कर्सर और सिलेक्शन
                             readerBody.setSelection(startPos, startPos + qCharLen)
                             Toast.makeText(patchActivity, LP("Word found!", "शब्द मिल गया!"), 0).show()
                         else
