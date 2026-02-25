@@ -1,5 +1,5 @@
 -- Nova Pad - Beta Find Lab 🔬
--- TalkBack Accessibility + Direct Paragraph/Line Jump Engine
+-- TalkBack Accessibility + BULLETPROOF Intent Jump Engine
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -15,15 +15,14 @@ local function getPatchLang()
 end
 local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
-local function showErrorBox(title, msg)
-    local errInput = EditText(patchActivity)
-    errInput.setText(tostring(msg))
-    errInput.setTextIsSelectable(true)
-    AlertDialog.Builder(patchActivity)
-    .setTitle(title .. " (Copy this)")
-    .setView(errInput)
-    .setPositiveButton("OK", nil)
-    .show()
+-- 1. हिंदी के नंबरों को इंग्लिश नंबरों में बदलने वाला जादुई कनवर्टर
+local function convertHindiDigits(str)
+    local s = tostring(str)
+    s = string.gsub(s, "०", "0"); s = string.gsub(s, "१", "1"); s = string.gsub(s, "२", "2")
+    s = string.gsub(s, "३", "3"); s = string.gsub(s, "४", "4"); s = string.gsub(s, "५", "5")
+    s = string.gsub(s, "६", "6"); s = string.gsub(s, "७", "7"); s = string.gsub(s, "८", "8")
+    s = string.gsub(s, "९", "9")
+    return s
 end
 
 local function safeLower(str)
@@ -77,48 +76,42 @@ pcall(function()
                 
                 pcall(function()
                     local rawQuery = tostring(findInput.getText() or "")
-                    local trimmedQuery = string.gsub(rawQuery, "^%s*(.-)%s*$", "%1")
                     
+                    -- 1. सबसे पहले हिंदी अंकों (१, २, ३) को इंग्लिश (1, 2, 3) में बदला
+                    local queryWithEngNums = convertHindiDigits(rawQuery)
+                    local trimmedQuery = string.gsub(queryWithEngNums, "^%s*(.-)%s*$", "%1")
                     if trimmedQuery == "" then return end
 
-                    -- 🔥 1. COMMAND DETECTOR (पैराग्राफ या लाइन नंबर ढूँढना) 🔥
+                    -- 🔥 2. BULLETPROOF COMMAND DETECTOR (इशारा पकड़ने वाला एआई) 🔥
                     local isCommand = false
-                    local reqType = ""
                     local reqNum = 0
                     
-                    -- चेक करते हैं कि क्या यूज़र ने अंत में कोई नंबर (1, 2, 30...) लिखा है?
-                    local numText = string.match(trimmedQuery, "(%d+)$")
+                    -- टेक्स्ट में कहीं भी कोई नंबर (0-9) हो, उसे निकाल लो
+                    local numText = string.match(trimmedQuery, "%d+")
                     if numText then
-                        -- नंबर से पहले का शब्द निकालते हैं (जैसे "पैराग्राफ ", "line ")
-                        local prefixLen = string.len(trimmedQuery) - string.len(numText)
-                        local cmdText = string.sub(trimmedQuery, 1, prefixLen)
+                        reqNum = tonumber(numText)
+                        local safeQ = safeLower(trimmedQuery)
                         
-                        -- स्पेस हटाकर चेक करते हैं
-                        local cleanCmd = string.gsub(safeLower(cmdText), "[%s%p]", "")
-                        
-                        -- हिंदी और इंग्लिश दोनों कमांड्स सपोर्टेड!
-                        if cleanCmd == "para" or cleanCmd == "paragraph" or cleanCmd == "पैराग्राफ" or cleanCmd == "अनुच्छेद" then
-                            isCommand = true; reqType = "para"; reqNum = tonumber(numText)
-                        elseif cleanCmd == "line" or cleanCmd == "लाइन" or cleanCmd == "पंक्ति" then
-                            isCommand = true; reqType = "line"; reqNum = tonumber(numText)
+                        -- अगर टेक्स्ट में नंबर के साथ-साथ इनमें से कोई भी शब्द है, तो यह 100% कमांड है!
+                        if string.find(safeQ, "para") or string.find(safeQ, "पैरा") or string.find(safeQ, "पेरा") or string.find(safeQ, "अनुच्छेद") or string.find(safeQ, "line") or string.find(safeQ, "लाइन") or string.find(safeQ, "पंक्ति") then
+                            isCommand = true
                         end
                     end
 
-                    -- 🔥 2. ACTION: JUMP TO COMMAND (डायरेक्ट जम्प) 🔥
-                    if isCommand then
+                    -- 🔥 3. ACTION: JUMP TO COMMAND 🔥
+                    if isCommand and reqNum > 0 then
                         if paraList and paraList.getVisibility() == 0 then
                             local adapter = paraList.getAdapter()
-                            if adapter and reqNum > 0 and reqNum <= adapter.getCount() then
+                            if adapter and reqNum <= adapter.getCount() then
                                 paraList.setSelection(reqNum - 1)
                                 local msg = LP("Paragraph " .. reqNum .. " selected", "पैराग्राफ " .. reqNum .. " चुना गया")
                                 Toast.makeText(patchActivity, msg, 0).show()
-                                -- 🎤 TALKBACK MAGIC: यह दृष्टिबाधित यूज़र्स को बोलकर बताएगा!
+                                -- 🎤 TalkBack के लिए सिस्टम की आवाज़!
                                 paraList.announceForAccessibility(msg) 
                             else
                                 Toast.makeText(patchActivity, LP("Invalid Number!", "यह नंबर मौजूद नहीं है!"), 0).show()
                             end
                         elseif readerBody then
-                            -- फुल टेक्स्ट मोड में जम्प
                             local fullText = tostring(readerBody.getText() or "")
                             local currentLine = 1
                             local startByte = 1
@@ -139,16 +132,16 @@ pcall(function()
                                 readerBody.setSelection(sChar, eChar)
                                 local msg = LP("Line " .. reqNum .. " selected", "लाइन " .. reqNum .. " चुनी गई")
                                 Toast.makeText(patchActivity, msg, 0).show()
-                                -- 🎤 TALKBACK MAGIC!
+                                -- 🎤 TalkBack के लिए सिस्टम की आवाज़!
                                 readerBody.announceForAccessibility(msg) 
                             else
                                 Toast.makeText(patchActivity, LP("Invalid Number!", "यह नंबर मौजूद नहीं है!"), 0).show()
                             end
                         end
-                        return -- कमांड पूरी हो गई, आगे का साधारण सर्च रोक दो
+                        return -- कमांड पूरी हो गई, आगे का नॉर्मल सर्च मत करो!
                     end
 
-                    -- 🔥 3. NORMAL TEXT SEARCH (अगर कोई कमांड नहीं है) 🔥
+                    -- 🔥 4. NORMAL TEXT SEARCH 🔥
                     local cleanQuery = smartClean(trimmedQuery)
                     local safeQ = safeLower(cleanQuery)
 
@@ -169,9 +162,9 @@ pcall(function()
                             paraList.setSelection(foundIndex) 
                             local msg = LP("Found at paragraph " .. (foundIndex + 1), "मिल गया! पैराग्राफ " .. (foundIndex + 1) .. " चुना गया")
                             Toast.makeText(patchActivity, msg, 0).show()
-                            paraList.announceForAccessibility(msg) -- 🎤 TalkBack
+                            paraList.announceForAccessibility(msg)
                         else
-                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द नहीं मिला।"), 0).show()
+                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
                         end
 
                     elseif readerBody then
@@ -186,9 +179,9 @@ pcall(function()
                             readerBody.setSelection(startChar, endChar)
                             local msg = LP("Word found and selected", "शब्द मिल गया और चुन लिया गया")
                             Toast.makeText(patchActivity, msg, 0).show()
-                            readerBody.announceForAccessibility(msg) -- 🎤 TalkBack
+                            readerBody.announceForAccessibility(msg)
                         else
-                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द नहीं मिला।"), 0).show()
+                            Toast.makeText(patchActivity, LP("Word not found.", "यह शब्द इस लेख में नहीं मिला।"), 0).show()
                         end
                     end
                 end)
