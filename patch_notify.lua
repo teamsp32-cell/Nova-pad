@@ -1,4 +1,4 @@
--- Nova Pad - Notification System Module
+-- Nova Pad - Notification System Module (Update 002)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -16,24 +16,23 @@ end
 local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
 pcall(function()
-    -- 🔥 जब भी नया मैसेज भेजना हो, इस ID को बदल देना (जैसे "MSG_002") 🔥
-    local notify_id = "MSG_001" 
+    -- 🔥 नया मैसेज ID: MSG_002 🔥
+    local notify_id = "MSG_002" 
     local lockFile = rootDirPatch .. "notify_" .. notify_id .. ".lock"
     
     local f_lock = io.open(lockFile, "r")
     if not f_lock then
-        -- यहाँ अपना संदेश लिखो
-        local msgTitle = LP("🎉 Important Update!", "🎉 ज़रूरी सूचना!")
+        -- यहाँ नया और प्रोफेशनल रिलीज़ नोट (Release Notes) है
+        local msgTitle = LP("🚀 New Feature: Smart Search!", "🚀 नया अपडेट: स्मार्ट खोज!")
         local msgBody = LP(
-            "Hello Users!\n\n1. The TTS (Listen) feature is now fully stable.\n2. The 'Find' feature is currently under maintenance and will be back soon.\n\nThank you for using Nova Pad!", 
-            "नमस्ते यूज़र्स!\n\n1. अब 'सुनें' (TTS) बटन पूरी तरह से काम कर रहा है।\n2. 'खोजें' (Find) बटन अभी मेंटेनेंस में है और जल्द ही वापस आएगा।\n\nNova Pad इस्तेमाल करने के लिए धन्यवाद!"
+            "Great news! The 'Find' feature is back and is now smarter than ever.\n\n✨ What's New:\n• Screen Reader Optimized: Fully accessible with automatic voice announcements for search results.\n• Direct Jump: Just type or say 'Para 10' or 'Line 5' to jump directly to that location!\n• Smart Voice Search: Perfectly handles voice typing inputs and accurately finds text.\n\nEnjoy the upgraded Nova Pad!", 
+            "खुशखबरी! 'Find' (खोजें) बटन वापस आ गया है और अब यह पहले से कहीं ज्यादा स्मार्ट है।\n\n✨ नया क्या है:\n• स्क्रीन रीडर सपोर्ट: सर्च रिज़ल्ट्स की ऑटोमैटिक अनाउंसमेंट के साथ, यह पूरी तरह से एक्सेसिबल है।\n• डायरेक्ट जम्प: सीधे किसी जगह जाने के लिए बस टाइप करें या बोलें 'पैराग्राफ 10' या 'लाइन 5'!\n• स्मार्ट वॉइस सर्च: वॉइस टाइपिंग के साथ एकदम सटीक काम करता है और शब्दों को आसानी से खोजता है।\n\nअपग्रेड किए गए Nova Pad का आनंद लें!"
         )
 
         AlertDialog.Builder(patchActivity)
         .setTitle(msgTitle)
         .setMessage(msgBody)
-        .setPositiveButton(LP("Got it!", "समझ गया!"), function()
-            -- यह लाइन सुनिश्चित करेगी कि यह मैसेज यूज़र को दोबारा न दिखे
+        .setPositiveButton(LP("Awesome!", "बहुत बढ़िया!"), function()
             local fw = io.open(lockFile, "w")
             if fw then fw:write("seen"); fw:close() end
         end)
@@ -43,4 +42,3 @@ pcall(function()
         f_lock:close()
     end
 end)
-
