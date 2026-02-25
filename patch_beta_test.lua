@@ -1,5 +1,5 @@
--- 🚀 NOVA PAD BETA HUB (5-in-1 Super Patch) 🚀
--- सिर्फ Beta यूज़र्स के लिए (Menu बटन लॉन्ग-प्रेस)
+-- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
+-- सारे फीचर्स अपनी सही जगह पर सेट किए गए हैं!
 
 require "import"
 import "android.view.*"
@@ -7,64 +7,66 @@ import "android.widget.*"
 import "android.app.AlertDialog"
 import "android.graphics.Color"
 import "java.lang.System"
+import "android.content.*"
 
 local patchActivity = activity
+local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
 
--- ग्लोबल वेरिएबल्स (ताकि डेटा सेव रहे)
+-- 💾 ग्लोबल वेरिएबल्स
 _G.betaClipboard = _G.betaClipboard or {"[खाली]", "[खाली]", "[खाली]"}
+_G.smartClipboardEnabled = _G.smartClipboardEnabled or false
 _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
 
--- 1. 📋 मल्टी-स्लॉट क्लिपबोर्ड लॉजिक
-local function openMultiClipboard()
+-- ==========================================
+-- 1. 📋 स्मार्ट क्लिपबोर्ड मैनेजर
+-- ==========================================
+local function openClipboardManager()
     local opts = {
-        "स्लॉट 1: " .. string.sub(_G.betaClipboard[1], 1, 15) .. "...",
-        "स्लॉट 2: " .. string.sub(_G.betaClipboard[2], 1, 15) .. "...",
-        "स्लॉट 3: " .. string.sub(_G.betaClipboard[3], 1, 15) .. "..."
+        "स्लॉट 1: " .. string.sub(_G.betaClipboard[1], 1, 20) .. "...",
+        "स्लॉट 2: " .. string.sub(_G.betaClipboard[2], 1, 20) .. "...",
+        "स्लॉट 3: " .. string.sub(_G.betaClipboard[3], 1, 20) .. "..."
     }
     
     local lv = ListView(patchActivity)
     lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, opts))
     
-    local dlg = AlertDialog.Builder(patchActivity)
-    .setTitle("📋 मल्टी-क्लिपबोर्ड")
-    .setView(lv)
-    .setNegativeButton("बंद करें", nil)
-    .show()
+    local dlg = AlertDialog.Builder(patchActivity).setTitle("📋 क्लिपबोर्ड मैनेजर").setView(lv).setNegativeButton("बंद करें", nil).show()
 
     lv.setOnItemClickListener(AdapterView.OnItemClickListener{
         onItemClick = function(parent, view, position, id)
             dlg.dismiss()
             local slotIndex = position + 1
-            local actionOpts = {"📝 यहाँ सेव करें (Copy)", "📋 यहाँ से पेस्ट करें (Paste)"}
+            local content = _G.betaClipboard[slotIndex]
             
+            if content == "[खाली]" then
+                Toast.makeText(patchActivity, "यह स्लॉट खाली है!", 0).show()
+                return
+            end
+            
+            local actionOpts = {"📋 टेक्स्ट पेस्ट करें (Paste)", "📤 शेयर करें (Share)", "🗑️ डिलीट करें (Clear)"}
             local actLv = ListView(patchActivity)
             actLv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, actionOpts))
             
-            local actDlg = AlertDialog.Builder(patchActivity).setTitle("स्लॉट " .. slotIndex).setView(actLv).show()
+            local actDlg = AlertDialog.Builder(patchActivity).setTitle("स्लॉट " .. slotIndex .. " ऑप्शंस").setView(actLv).show()
             actLv.setOnItemClickListener(AdapterView.OnItemClickListener{
                 onItemClick = function(p, v, pos2, i2)
                     actDlg.dismiss()
                     if pos2 == 0 then
-                        -- Copy
-                        local selectedText = noteEditor.getText().toString()
-                        local startSel = noteEditor.getSelectionStart()
-                        local endSel = noteEditor.getSelectionEnd()
-                        if startSel ~= endSel then
-                            selectedText = string.sub(selectedText, startSel + 1, endSel)
-                        else
-                            Toast.makeText(patchActivity, "पूरा टेक्स्ट कॉपी हो रहा है...", 0).show()
-                        end
-                        _G.betaClipboard[slotIndex] = selectedText
-                        Toast.makeText(patchActivity, "स्लॉट " .. slotIndex .. " में सेव हो गया!", 0).show()
-                    else
-                        -- Paste
-                        if _G.betaClipboard[slotIndex] == "[खाली]" then
-                            Toast.makeText(patchActivity, "यह स्लॉट खाली है!", 0).show()
-                        else
-                            noteEditor.getText().insert(noteEditor.getSelectionStart(), _G.betaClipboard[slotIndex])
+                        if noteEditor and noteEditor.getVisibility() == 0 then
+                            noteEditor.getText().insert(noteEditor.getSelectionStart(), content)
                             Toast.makeText(patchActivity, "पेस्ट हो गया!", 0).show()
+                        else
+                            Toast.makeText(patchActivity, "पहले एडिटर खोलें!", 0).show()
                         end
+                    elseif pos2 == 1 then
+                        local i = Intent(Intent.ACTION_SEND)
+                        i.setType("text/plain")
+                        i.putExtra(Intent.EXTRA_TEXT, content)
+                        patchActivity.startActivity(Intent.createChooser(i, "टेक्स्ट शेयर करें"))
+                    elseif pos2 == 2 then
+                        _G.betaClipboard[slotIndex] = "[खाली]"
+                        Toast.makeText(patchActivity, "स्लॉट साफ कर दिया गया!", 0).show()
                     end
                 end
             })
@@ -72,19 +74,23 @@ local function openMultiClipboard()
     })
 end
 
--- 2. 🗺️ स्ट्रक्चर जम्पर (Outline Navigator)
-local function openStructureJumper()
-    local text = noteEditor.getText().toString()
-    if #text == 0 then Toast.makeText(patchActivity, "पहले कुछ लिखें!", 0).show() return end
+-- ==========================================
+-- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Paragraph Finder)
+-- ==========================================
+local function openStructureJumperReader()
+    local text = _G.currentFullText or ""
+    if #text == 0 then Toast.makeText(patchActivity, "टेक्स्ट खाली है!", 0).show() return end
     
     local lines = {}
     local positions = {}
     local currentPos = 0
+    local lineNum = 1
     
     for line in string.gmatch(text .. "\n", "(.-)\n") do
         if #line:gsub("%s+", "") > 0 then
-            table.insert(lines, "📌 " .. string.sub(line, 1, 30) .. "...")
+            table.insert(lines, "पैरा " .. lineNum .. ": " .. string.sub(line, 1, 35) .. "...")
             table.insert(positions, currentPos)
+            lineNum = lineNum + 1
         end
         currentPos = currentPos + #line + 1
     end
@@ -92,18 +98,79 @@ local function openStructureJumper()
     local lv = ListView(patchActivity)
     lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, lines))
     
-    local dlg = AlertDialog.Builder(patchActivity).setTitle("🗺️ पैराग्राफ जम्पर").setView(lv).show()
+    local dlg = AlertDialog.Builder(patchActivity).setTitle("🗺️ पैराग्राफ चुनें").setView(lv).setNegativeButton("बंद करें", nil).show()
+    
     lv.setOnItemClickListener(AdapterView.OnItemClickListener{
         onItemClick = function(parent, view, position, id)
-            noteEditor.setSelection(positions[position + 1])
-            noteEditor.requestFocus()
-            Toast.makeText(patchActivity, "कर्सर सेट हो गया!", 0).show()
             dlg.dismiss()
+            if scrollFullText and scrollFullText.getVisibility() == 0 then
+                -- अगर फुल टेक्स्ट मोड है, तो कर्सर को वहाँ ले जाओ
+                readerBody.requestFocus()
+                readerBody.setSelection(positions[position + 1])
+                Toast.makeText(patchActivity, "लाइन चुनी गई!", 0).show()
+            elseif paraList and paraList.getVisibility() == 0 then
+                -- अगर पैराग्राफ स्क्रॉल मोड है
+                paraList.setSelection(position)
+                Toast.makeText(patchActivity, "पैराग्राफ सेट हो गया!", 0).show()
+            end
         end
     })
 end
 
--- 3. 🧹 स्मार्ट टेक्स्ट क्लीनर
+-- 📌 रीडर बार में "Jump" बटन जोड़ना
+pcall(function()
+    if readerBar and not _G.jumperAdded then
+        local btnJumper = Button(patchActivity)
+        btnJumper.setText("Jump")
+        btnJumper.setTextSize(10)
+        btnJumper.setTextColor(0xFF6200EE)
+        local params = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0)
+        btnJumper.setLayoutParams(params)
+        
+        btnJumper.setOnClickListener(View.OnClickListener{
+            onClick = function() openStructureJumperReader() end
+        })
+        
+        readerBar.addView(btnJumper, 3) -- Find बटन के आस-पास जोड़ दिया
+        _G.jumperAdded = true
+    end
+end)
+
+-- ==========================================
+-- 3. ✂️ कॉपी बटन का ओवरराइड (रीडर मोड के लिए)
+-- ==========================================
+pcall(function()
+    if btnReaderCopy then
+        btnReaderCopy.setOnClickListener(View.OnClickListener{
+            onClick = function()
+                local textToCopy = _G.currentFullText or ""
+                
+                if _G.smartClipboardEnabled then
+                    local opts = {"स्लॉट 1 में सेव करें", "स्लॉट 2 में सेव करें", "स्लॉट 3 में सेव करें"}
+                    local lv = ListView(patchActivity)
+                    lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, opts))
+                    local dlg = AlertDialog.Builder(patchActivity).setTitle("कहाँ कॉपी करें?").setView(lv).show()
+                    
+                    lv.setOnItemClickListener(AdapterView.OnItemClickListener{
+                        onItemClick = function(p, v, pos, id)
+                            dlg.dismiss()
+                            _G.betaClipboard[pos + 1] = textToCopy
+                            Toast.makeText(patchActivity, "स्लॉट " .. (pos + 1) .. " में कॉपी हो गया!", 0).show()
+                        end
+                    })
+                else
+                    -- नॉर्मल कॉपी
+                    patchActivity.getSystemService(Context.CLIPBOARD_SERVICE).setPrimaryClip(ClipData.newPlainText("Nova", textToCopy))
+                    Toast.makeText(patchActivity, "पूरा टेक्स्ट कॉपी हो गया!", 0).show()
+                end
+            end
+        })
+    end
+end)
+
+-- ==========================================
+-- 4. 🧰 स्मार्ट टूल्स का ओवरराइड (सब कुछ एक जगह)
+-- ==========================================
 local function cleanTextSmartly()
     local text = noteEditor.getText().toString()
     local cleanText = text:gsub(" +", " "):gsub("\n%s*\n+", "\n\n")
@@ -111,7 +178,6 @@ local function cleanTextSmartly()
     Toast.makeText(patchActivity, "✨ टेक्स्ट एकदम साफ कर दिया गया!", 0).show()
 end
 
--- 4. 🥷 प्राइवेसी कर्टेन मोड
 local function toggleCurtain()
     if _G.curtainView then
         local parent = _G.curtainView.getParent()
@@ -127,27 +193,24 @@ local function toggleCurtain()
         _G.curtainView.setOnClickListener(View.OnClickListener{
             onClick = function()
                 local clickTime = System.currentTimeMillis()
-                if clickTime - lastClickTime < 300 then
-                    toggleCurtain() 
-                end
+                if clickTime - lastClickTime < 300 then toggleCurtain() end
                 lastClickTime = clickTime
             end
         })
         
         local params = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         patchActivity.getWindow().addContentView(_G.curtainView, params)
-        Toast.makeText(patchActivity, "🥷 प्राइवेसी कर्टेन चालू! (हटाने के लिए स्क्रीन पर डबल टैप करें)", 1).show()
+        Toast.makeText(patchActivity, "🥷 प्राइवेसी कर्टेन चालू! (डबल टैप से हटाएं)", 1).show()
     end
 end
 
--- 5. 🔊 वॉल्यूम कर्सर कंट्रोल
 local function toggleVolumeNav()
     _G.volNavEnabled = not _G.volNavEnabled
     if _G.volNavEnabled then
         if not _G.old_onKeyDown then _G.old_onKeyDown = onKeyDown end
         _G.onKeyDown = function(code, event)
             if _G.volNavEnabled and noteEditor.isFocused() then
-                if code == 24 then 
+                if code == 24 then -- Vol UP
                     local layout = noteEditor.getLayout()
                     if layout then
                         local currentLine = layout.getLineForOffset(noteEditor.getSelectionStart())
@@ -156,7 +219,7 @@ local function toggleVolumeNav()
                             return true
                         end
                     end
-                elseif code == 25 then 
+                elseif code == 25 then -- Vol DOWN
                     local layout = noteEditor.getLayout()
                     if layout then
                         local currentLine = layout.getLineForOffset(noteEditor.getSelectionStart())
@@ -175,48 +238,41 @@ local function toggleVolumeNav()
     end
 end
 
--- 🛠️ मुख्य बीटा हब मेनू
-local function openBetaHub()
+-- तुम्हारे पुराने स्मार्ट टूल्स फंक्शन को पूरी तरह ओवरराइड कर रहे हैं
+_G.openSmartTextCleaner = function()
+    local cbStatus = _G.smartClipboardEnabled and "ON 🟢" or "OFF 🔴"
+    local volStatus = _G.volNavEnabled and "ON 🟢" or "OFF 🔴"
+    
     local opts = {
-        "1. 📋 मल्टी-स्लॉट क्लिपबोर्ड",
-        "2. 🗺️ स्ट्रक्चर जम्पर (पैराग्राफ खोजें)",
-        "3. 🧹 स्मार्ट टेक्स्ट क्लीनर",
-        "4. 🥷 प्राइवेसी कर्टेन (Black Screen)",
-        "5. 🔊 वॉल्यूम कर्सर (ON/OFF)"
+        "📋 क्लिपबोर्ड मैनेजर (Share/Paste)",
+        "✂️ स्मार्ट क्लिपबोर्ड टॉगल: " .. cbStatus,
+        "🧹 स्मार्ट टेक्स्ट क्लीनर (Space/Lines)",
+        "🥷 प्राइवेसी कर्टेन (Black Screen)",
+        "🔊 वॉल्यूम कर्सर टॉगल: " .. volStatus,
+        "📞 फोन नंबर निकालें",
+        "🔗 लिंक्स निकालें",
+        "🗣️ टेक्स्ट पढ़ें (TTS)"
     }
     
     local lv = ListView(patchActivity)
     lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, opts))
     
-    local dlg = AlertDialog.Builder(patchActivity)
-    .setTitle("🧪 Beta Features Hub")
-    .setView(lv)
-    .setNegativeButton("बंद करें", nil)
-    .show()
-
+    local dlg = AlertDialog.Builder(patchActivity).setTitle("🧰 स्मार्ट टेक्स्ट टूल्स").setView(lv).setNegativeButton("बंद करें", nil).show()
+    
     lv.setOnItemClickListener(AdapterView.OnItemClickListener{
         onItemClick = function(parent, view, position, id)
             dlg.dismiss()
-            if position == 0 then openMultiClipboard()
-            elseif position == 1 then openStructureJumper()
+            if position == 0 then openClipboardManager()
+            elseif position == 1 then 
+                _G.smartClipboardEnabled = not _G.smartClipboardEnabled
+                Toast.makeText(patchActivity, "स्मार्ट क्लिपबोर्ड टॉगल किया गया!", 0).show()
             elseif position == 2 then cleanTextSmartly()
             elseif position == 3 then toggleCurtain()
             elseif position == 4 then toggleVolumeNav()
+            elseif position == 5 then Toast.makeText(patchActivity, "यह पुराना फीचर है, ऊपर के नए ट्राई करें!", 0).show()
             end
         end
     })
 end
 
--- 🚀 THE FIX: 'Menu' बटन के लॉन्ग-प्रेस पर बीटा हब लगाना
-pcall(function()
-    if btnMenuTop then
-        btnMenuTop.setOnLongClickListener(View.OnLongClickListener{
-            onLongClick = function(v)
-                openBetaHub()
-                return true -- true का मतलब है कि लॉन्ग-प्रेस का काम हो गया
-            end
-        })
-        -- जैसे ही पैच लोड होगा, यह मैसेज आएगा!
-        Toast.makeText(patchActivity, "🧪 Beta पैच लोड हो गया! 'Menu' बटन को लॉन्ग-प्रेस करें।", 1).show()
-    end
-end)
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded!", 0).show()
