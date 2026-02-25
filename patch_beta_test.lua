@@ -1,5 +1,5 @@
 -- Nova Pad - Smart Dhyan & Radio Module 🎧
--- 100% Bulletproof Audio Player (Fresh Instance Every Time)
+-- GC-Proof Audio Player (Fixes Silent Crash & Loading Issues)
 
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
@@ -17,7 +17,6 @@ local function getPatchLang()
 end
 local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
--- 📻 3 पुराने ऑडिओज़ + 100% वर्किंग सुरक्षित (HTTPS) लाइव रेडियो 
 local radioStations = {
     {name = "🛑 " .. LP("Stop Music", "म्यूजिक बंद करें"), url = "STOP"},
     
@@ -30,13 +29,9 @@ local radioStations = {
     {name = "🎵 " .. LP("Lo-Fi Chill", "लो-फाई चिल"), url = "https://streams.ilovemusic.de/iloveradio17.mp3"},
     {name = "🎹 " .. LP("Relaxing Piano", "रिलैक्सिंग पियानो"), url = "https://stream.srg-ssr.ch/m/rsc_de/mp3_128"},
     {name = "🎻 " .. LP("Classical Focus", "क्लासिकल फोकस"), url = "https://strm112.1.fm/aclassic_mobile_mp3"},
-    {name = "🎷 " .. LP("Smooth Jazz", "स्मूथ जैज़"), url = "https://strm112.1.fm/smoothjazz_mobile_mp3"},
-    {name = "🧘 " .. LP("Deep Sleep & Ambient", "गहरा ध्यान व शांति"), url = "https://maggie.torontocast.com:8076/stream"},
-    {name = "🎸 " .. LP("Acoustic Guitar", "अकॉस्टिक गिटार"), url = "https://strm112.1.fm/guitars_mobile_mp3"},
-    {name = "☕ " .. LP("Chillout Lounge", "चिलआउट लाउंज"), url = "https://strm112.1.fm/chilloutlounge_mobile_mp3"}
+    {name = "🎷 " .. LP("Smooth Jazz", "स्मूथ जैज़"), url = "https://strm112.1.fm/smoothjazz_mobile_mp3"}
 }
 
--- 🔥 THE MAGIC: पुराने मेनू को ओवरराइट कर रहे हैं 🔥
 _G.showAmbientMenu = function()
     local list = ListView(patchActivity)
     local adapter = ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1)
@@ -57,7 +52,6 @@ _G.showAmbientMenu = function()
             local selected = radioStations[position + 1]
             
             if selected.url == "STOP" then
-                -- किसी भी पुराने प्लेयर को पूरी तरह से नष्ट (Kill) करो
                 pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer:stop(); _G.novaRadioPlayer:release(); _G.novaRadioPlayer = nil end end)
                 local msg = LP("Music Stopped 🛑", "म्यूजिक बंद कर दिया गया 🛑")
                 Toast.makeText(patchActivity, msg, 0).show()
@@ -66,39 +60,43 @@ _G.showAmbientMenu = function()
                 return
             end
 
-            local startMsg = LP("Connecting to " .. selected.name .. " ⏳", selected.name .. " लोड हो रहा है... ⏳")
+            local startMsg = LP("Loading " .. selected.name .. " ⏳", selected.name .. " लोड हो रहा है... ⏳")
             Toast.makeText(patchActivity, startMsg, 0).show()
             list.announceForAccessibility(startMsg)
             
             pcall(function()
-                -- 1. पुराने प्लेयर को पूरी तरह से बंद और नष्ट करो
                 pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer:stop(); _G.novaRadioPlayer:release(); _G.novaRadioPlayer = nil end end)
                 
-                -- 2. बिल्कुल नया फ्रेश प्लेयर बनाओ
                 local freshPlayer = MediaPlayer()
                 _G.novaRadioPlayer = freshPlayer
                 
                 freshPlayer:setDataSource(selected.url)
+                freshPlayer:setAudioStreamType(3) -- STREAM_MUSIC फिक्स
                 
-                -- 3. लिस्नर (Listener) को prepareAsync से **पहले** सेट करना बहुत ज़रूरी है!
-                freshPlayer:setOnPreparedListener(MediaPlayer.OnPreparedListener{
+                -- 🔥 THE FIX: लिस्नर्स को GLOBAL (_G) कर दिया ताकि डिलीट न हों 🔥
+                _G.radioPrepListener = MediaPlayer.OnPreparedListener{
                     onPrepared = function(mp)
                         mp:setVolume(0.2, 0.2)
                         mp:setLooping(true) 
                         mp:start()
                         local playMsg = LP("🎶 Playing: " .. selected.name, "🎶 बजना शुरू: " .. selected.name)
                         Toast.makeText(patchActivity, playMsg, 0).show()
+                        list.announceForAccessibility(playMsg)
                     end
-                })
+                }
                 
-                freshPlayer:setOnErrorListener(MediaPlayer.OnErrorListener{
+                _G.radioErrListener = MediaPlayer.OnErrorListener{
                     onError = function(mp, what, extra) 
-                        Toast.makeText(patchActivity, LP("Audio Fail! Error Code: ", "ऑडियो फेल! एरर कोड: ") .. tostring(what), 1).show()
+                        local errMsg = LP("Audio Error: ", "ऑडियो एरर: ") .. tostring(what)
+                        Toast.makeText(patchActivity, errMsg, 1).show()
+                        list.announceForAccessibility(errMsg)
                         return true 
                     end
-                })
+                }
                 
-                -- 4. अब आख़िर में लोड करना शुरू करो
+                freshPlayer:setOnPreparedListener(_G.radioPrepListener)
+                freshPlayer:setOnErrorListener(_G.radioErrListener)
+                
                 freshPlayer:prepareAsync()
             end)
             dlg.dismiss()
