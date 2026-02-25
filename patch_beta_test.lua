@@ -1,118 +1,227 @@
--- Nova Pad - Smart Dhyan & Radio Module 🎧
--- 100% Working (Fixed AndroLua Import Bug & Added Nature Sounds)
+-- 🚀 NOVA PAD BETA HUB (5-in-1 Super Patch) 🚀
+-- सिर्फ Beta यूज़र्स के लिए
 
 require "import"
-import "android.media.MediaPlayer"
+import "android.view.*"
+import "android.widget.*"
+import "android.app.AlertDialog"
+import "android.graphics.Color"
 
 local patchActivity = activity
-local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
 
-local function getPatchLang()
-    local lang = "en"
-    local f = io.open(rootDirPatch .. "lang_pref.txt", "r")
-    if f then
-        local content = f:read("*a"); f:close()
-        if content and content:match("hi") then lang = "hi" end
-    end
-    return lang
-end
-local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
+-- ग्लोबल वेरिएबल्स (ताकि डेटा सेव रहे)
+_G.betaClipboard = _G.betaClipboard or {"[खाली]", "[खाली]", "[खाली]"}
+_G.volNavEnabled = _G.volNavEnabled or false
+_G.curtainView = _G.curtainView or nil
 
--- 📻 15 बेहतरीन 24/7 लाइव और सुरक्षित (HTTPS) रेडियो 
-local radioStations = {
-    {name = "🛑 " .. LP("Stop Music", "म्यूजिक बंद करें"), url = "STOP"},
+-- 1. 📋 मल्टी-स्लॉट क्लिपबोर्ड लॉजिक
+local function openMultiClipboard()
+    local opts = {
+        "स्लॉट 1: " .. string.sub(_G.betaClipboard[1], 1, 15) .. "...",
+        "स्लॉट 2: " .. string.sub(_G.betaClipboard[2], 1, 15) .. "...",
+        "स्लॉट 3: " .. string.sub(_G.betaClipboard[3], 1, 15) .. "..."
+    }
     
-    -- ⬇️ 1. तुम्हारे ओरिजिनल ध्यान संगीत ⬇️
-    {name = "🧘 " .. LP("Meditation 1 (Original)", "ध्यान संगीत 1 (पुराना)"), url = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20(1).mp3"},
-    {name = "🧘 " .. LP("Meditation 2 (Original)", "ध्यान संगीत 2 (पुराना)"), url = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20music%202.mp3"},
-    {name = "🧘 " .. LP("Meditation 3 (Original)", "ध्यान संगीत 3 (पुराना)"), url = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20-%201%2C.mp3"},
-
-    -- ⬇️ 2. प्रकृति और शांति (Nature Sounds) ⬇️
-    {name = "🌧️ " .. LP("Rain Drops", "शांत बारिश की आवाज़"), url = "https://stream.laut.fm/regen"},
-    {name = "🐦 " .. LP("Forest & Birds", "जंगल और पंछियों की आवाज़"), url = "https://stream.laut.fm/waldgeraeusche"},
-    {name = "🌊 " .. LP("River & Ocean", "नदी और समंदर की लहरें"), url = "https://stream.laut.fm/meer"},
-    {name = "🔥 " .. LP("Campfire Vibe", "कैंपफायर और रात"), url = "https://stream.laut.fm/ambient"},
-
-    -- ⬇️ 3. डीप फोकस और लो-फाई (Focus & Lo-Fi) ⬇️
-    {name = "🎵 " .. LP("Lo-Fi Chill Beats", "लो-फाई चिल बीट्स"), url = "https://streams.ilovemusic.de/iloveradio17.mp3"},
-    {name = "☕ " .. LP("Chillout Lounge", "चिलआउट लाउंज (फोकस)"), url = "https://strm112.1.fm/chilloutlounge_mobile_mp3"},
+    local lv = ListView(patchActivity)
+    lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, opts))
     
-    -- ⬇️ 4. क्लासिकल और इंस्ट्रूमेंटल (Classical & Instruments) ⬇️
-    {name = "🎻 " .. LP("Violin & Strings", "वायलिन और क्लासिकल"), url = "https://stream.laut.fm/klassik"},
-    {name = "🎹 " .. LP("Relaxing Piano", "सुकून भरा पियानो"), url = "https://stream.srg-ssr.ch/m/rsc_de/mp3_128"},
-    {name = "🎸 " .. LP("Acoustic Guitar", "अकॉस्टिक गिटार"), url = "https://strm112.1.fm/guitars_mobile_mp3"},
-    {name = "🎷 " .. LP("Smooth Jazz", "स्मूथ जैज़"), url = "https://strm112.1.fm/smoothjazz_mobile_mp3"},
-
-    -- ⬇️ 5. योग और गहरा ध्यान (Yoga & Deep Zen) ⬇️
-    {name = "🕉️ " .. LP("Yoga & Zen", "योग और गहरा ध्यान"), url = "https://stream.laut.fm/yoga"},
-    {name = "🌌 " .. LP("Deep Sleep Space", "स्लीप और स्पेस एम्बियंस"), url = "https://maggie.torontocast.com:8076/stream"}
-}
-
-_G.showAmbientMenu = function()
-    local list = ListView(patchActivity)
-    local adapter = ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1)
-    
-    for i, station in ipairs(radioStations) do
-        adapter.add(station.name)
-    end
-    list.setAdapter(adapter)
-
     local dlg = AlertDialog.Builder(patchActivity)
-    .setTitle(LP("🎧 Focus Music & Radio", "🎧 ध्यान संगीत व रेडियो"))
-    .setView(list)
-    .setNegativeButton(LP("Close", "बंद करें"), nil)
+    .setTitle("📋 मल्टी-क्लिपबोर्ड")
+    .setView(lv)
+    .setNegativeButton("बंद करें", nil)
     .show()
 
-    list.setOnItemClickListener(AdapterView.OnItemClickListener{
+    lv.setOnItemClickListener(AdapterView.OnItemClickListener{
         onItemClick = function(parent, view, position, id)
-            local selected = radioStations[position + 1]
+            dlg.dismiss()
+            local slotIndex = position + 1
+            local actionOpts = {"📝 यहाँ सेव करें (Copy)", "📋 यहाँ से पेस्ट करें (Paste)"}
             
-            if selected.url == "STOP" then
-                pcall(function() if _G.mediaPlayer then _G.mediaPlayer.stop(); _G.mediaPlayer.release(); _G.mediaPlayer = nil end end)
-                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer.stop(); _G.novaRadioPlayer.release(); _G.novaRadioPlayer = nil end end)
-                
-                local msg = LP("Music Stopped 🛑", "म्यूजिक बंद कर दिया गया 🛑")
-                Toast.makeText(patchActivity, msg, 0).show()
-                list.announceForAccessibility(msg) 
-                dlg.dismiss()
-                return
-            end
+            local actLv = ListView(patchActivity)
+            actLv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, actionOpts))
+            
+            local actDlg = AlertDialog.Builder(patchActivity).setTitle("स्लॉट " .. slotIndex).setView(actLv).show()
+            actLv.setOnItemClickListener(AdapterView.OnItemClickListener{
+                onItemClick = function(p, v, pos2, i2)
+                    actDlg.dismiss()
+                    if pos2 == 0 then
+                        -- Copy
+                        local selectedText = noteEditor.getText().toString()
+                        local startSel = noteEditor.getSelectionStart()
+                        local endSel = noteEditor.getSelectionEnd()
+                        if startSel ~= endSel then
+                            selectedText = string.sub(selectedText, startSel + 1, endSel)
+                        end
+                        _G.betaClipboard[slotIndex] = selectedText
+                        Toast.makeText(patchActivity, "स्लॉट " .. slotIndex .. " में सेव हो गया!", 0).show()
+                    else
+                        -- Paste
+                        if _G.betaClipboard[slotIndex] == "[खाली]" then
+                            Toast.makeText(patchActivity, "यह स्लॉट खाली है!", 0).show()
+                        else
+                            noteEditor.getText().insert(noteEditor.getSelectionStart(), _G.betaClipboard[slotIndex])
+                            Toast.makeText(patchActivity, "पेस्ट हो गया!", 0).show()
+                        end
+                    end
+                end
+            })
+        end
+    })
+end
 
-            local startMsg = LP("Loading " .. selected.name .. " ⏳", selected.name .. " लोड हो रहा है... ⏳")
-            Toast.makeText(patchActivity, startMsg, 0).show()
-            list.announceForAccessibility(startMsg)
-            
-            pcall(function()
-                pcall(function() if _G.mediaPlayer then _G.mediaPlayer.stop(); _G.mediaPlayer.release(); _G.mediaPlayer = nil end end)
-                pcall(function() if _G.novaRadioPlayer then _G.novaRadioPlayer.stop(); _G.novaRadioPlayer.release(); _G.novaRadioPlayer = nil end end)
-                
-                _G.novaRadioPlayer = MediaPlayer()
-                _G.novaRadioPlayer.setDataSource(selected.url)
-                _G.novaRadioPlayer.setAudioStreamType(3)
-                
-                _G.novaRadioPlayer.setOnPreparedListener(MediaPlayer.OnPreparedListener{
-                    onPrepared = function(mp)
-                        mp.setVolume(0.2, 0.2)
-                        mp.setLooping(true) 
-                        mp.start()
-                        local playMsg = LP("🎶 Playing: " .. selected.name, "🎶 बजना शुरू: " .. selected.name)
-                        Toast.makeText(patchActivity, playMsg, 0).show()
-                        list.announceForAccessibility(playMsg)
-                    end
-                })
-                
-                _G.novaRadioPlayer.setOnErrorListener(MediaPlayer.OnErrorListener{
-                    onError = function(mp, what, extra) 
-                        local errMsg = LP("Audio Error. Check Internet.", "ऑडियो एरर! इंटरनेट चेक करें।")
-                        Toast.makeText(patchActivity, errMsg, 1).show()
-                        list.announceForAccessibility(errMsg)
-                        return true 
-                    end
-                })
-                
-                _G.novaRadioPlayer.prepareAsync()
-            end)
+-- 2. 🗺️ स्ट्रक्चर जम्पर (Outline Navigator)
+local function openStructureJumper()
+    local text = noteEditor.getText().toString()
+    if #text == 0 then Toast.makeText(patchActivity, "पहले कुछ लिखें!", 0).show() return end
+    
+    local lines = {}
+    local positions = {}
+    local currentPos = 0
+    
+    for line in string.gmatch(text .. "\n", "(.-)\n") do
+        if #line:gsub("%s+", "") > 0 then
+            table.insert(lines, "📌 " .. string.sub(line, 1, 30) .. "...")
+            table.insert(positions, currentPos)
+        end
+        currentPos = currentPos + #line + 1
+    end
+    
+    local lv = ListView(patchActivity)
+    lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, lines))
+    
+    local dlg = AlertDialog.Builder(patchActivity).setTitle("🗺️ पैराग्राफ जम्पर").setView(lv).show()
+    lv.setOnItemClickListener(AdapterView.OnItemClickListener{
+        onItemClick = function(parent, view, position, id)
+            noteEditor.setSelection(positions[position + 1])
+            noteEditor.requestFocus()
+            Toast.makeText(patchActivity, "कर्सर सेट हो गया!", 0).show()
             dlg.dismiss()
         end
     })
 end
+
+-- 3. 🧹 स्मार्ट टेक्स्ट क्लीनर
+local function cleanTextSmartly()
+    local text = noteEditor.getText().toString()
+    -- फालतू स्पेस हटाना और खाली लाइनों को कम करना
+    local cleanText = text:gsub(" +", " "):gsub("\n%s*\n+", "\n\n")
+    noteEditor.setText(cleanText)
+    Toast.makeText(patchActivity, "✨ टेक्स्ट एकदम साफ कर दिया गया!", 0).show()
+end
+
+-- 4. 🥷 प्राइवेसी कर्टेन मोड
+local function toggleCurtain()
+    if _G.curtainView then
+        local parent = _G.curtainView.getParent()
+        if parent then parent.removeView(_G.curtainView) end
+        _G.curtainView = nil
+        Toast.makeText(patchActivity, "कर्टेन हट गया", 0).show()
+    else
+        _G.curtainView = FrameLayout(patchActivity)
+        _G.curtainView.setBackgroundColor(Color.BLACK)
+        _G.curtainView.setClickable(true)
+        
+        -- डबल टैप से कर्टेन हटाना
+        local lastClickTime = 0
+        _G.curtainView.setOnClickListener(View.OnClickListener{
+            onClick = function()
+                local clickTime = System.currentTimeMillis()
+                if clickTime - lastClickTime < 300 then
+                    toggleCurtain() -- डबल टैप डिटेक्ट हुआ
+                end
+                lastClickTime = clickTime
+            end
+        })
+        
+        local params = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        patchActivity.getWindow().addContentView(_G.curtainView, params)
+        Toast.makeText(patchActivity, "🥷 प्राइवेसी कर्टेन चालू! (हटाने के लिए स्क्रीन पर डबल टैप करें)", 1).show()
+    end
+end
+
+-- 5. 🔊 वॉल्यूम कर्सर कंट्रोल
+local function toggleVolumeNav()
+    _G.volNavEnabled = not _G.volNavEnabled
+    if _G.volNavEnabled then
+        -- पुराना onKeyDown सेव करें ताकि बैक बटन काम करता रहे
+        if not _G.old_onKeyDown then _G.old_onKeyDown = onKeyDown end
+        _G.onKeyDown = function(code, event)
+            if _G.volNavEnabled and noteEditor.isFocused() then
+                if code == 24 then -- Volume UP
+                    local layout = noteEditor.getLayout()
+                    if layout then
+                        local currentLine = layout.getLineForOffset(noteEditor.getSelectionStart())
+                        if currentLine > 0 then
+                            noteEditor.setSelection(layout.getLineStart(currentLine - 1))
+                            return true
+                        end
+                    end
+                elseif code == 25 then -- Volume DOWN
+                    local layout = noteEditor.getLayout()
+                    if layout then
+                        local currentLine = layout.getLineForOffset(noteEditor.getSelectionStart())
+                        if currentLine < layout.getLineCount() - 1 then
+                            noteEditor.setSelection(layout.getLineStart(currentLine + 1))
+                            return true
+                        end
+                    end
+                end
+            end
+            if _G.old_onKeyDown then return _G.old_onKeyDown(code, event) end
+        end
+        Toast.makeText(patchActivity, "🔊 वॉल्यूम कर्सर चालू हो गया!", 0).show()
+    else
+        Toast.makeText(patchActivity, "🔊 वॉल्यूम कर्सर बंद कर दिया गया।", 0).show()
+    end
+end
+
+-- 🛠️ मुख्य बीटा हब मेनू
+local function openBetaHub()
+    local opts = {
+        "1. 📋 मल्टी-स्लॉट क्लिपबोर्ड",
+        "2. 🗺️ स्ट्रक्चर जम्पर (पैराग्राफ खोजें)",
+        "3. 🧹 स्मार्ट टेक्स्ट क्लीनर",
+        "4. 🥷 प्राइवेसी कर्टेन (Black Screen)",
+        "5. 🔊 वॉल्यूम कर्सर (ON/OFF)"
+    }
+    
+    local lv = ListView(patchActivity)
+    lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, opts))
+    
+    local dlg = AlertDialog.Builder(patchActivity)
+    .setTitle("🧪 Beta Features Hub")
+    .setView(lv)
+    .setNegativeButton("बंद करें", nil)
+    .show()
+
+    lv.setOnItemClickListener(AdapterView.OnItemClickListener{
+        onItemClick = function(parent, view, position, id)
+            dlg.dismiss()
+            if position == 0 then openMultiClipboard()
+            elseif position == 1 then openStructureJumper()
+            elseif position == 2 then cleanTextSmartly()
+            elseif position == 3 then toggleCurtain()
+            elseif position == 4 then toggleVolumeNav()
+            end
+        end
+    })
+end
+
+-- 🚀 टॉप बार में "Beta 🧪" बटन जोड़ना
+pcall(function()
+    if topBar and not _G.betaButtonAdded then
+        local betaBtn = TextView(patchActivity)
+        betaBtn.setText("Beta 🧪")
+        betaBtn.setTextColor(Color.WHITE)
+        betaBtn.setTextSize(14)
+        betaBtn.setPadding(15, 0, 15, 0)
+        betaBtn.setGravity(android.view.Gravity.CENTER)
+        
+        betaBtn.setOnClickListener(View.OnClickListener{
+            onClick = function() openBetaHub() end
+        })
+        
+        topBar.addView(betaBtn, 1) -- 'Menu' बटन के ठीक बाद जोड़ दिया
+        _G.betaButtonAdded = true
+    end
+end)
