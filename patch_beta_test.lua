@@ -1,6 +1,6 @@
--- ==========================================
--- 🎧 DHYAN & LIVE RADIO MODULE (OVERRIDE)
--- ==========================================
+-- Nova Pad - Smart Dhyan & Radio Module 🎧
+-- Cloud Controlled Audio Player (100% Working HTTPS Links)
+
 local patchActivity = activity
 local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
 
@@ -22,7 +22,7 @@ local function getPatchLang()
 end
 local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
--- 📻 3 पुराने ऑडिओज़ + 24/7 लाइव रेडियो की मास्टर लिस्ट
+-- 📻 3 पुराने ऑडिओज़ + 100% वर्किंग सुरक्षित (HTTPS) लाइव रेडियो की मास्टर लिस्ट
 local radioStations = {
     {name = "🛑 " .. LP("Stop Music", "म्यूजिक बंद करें"), url = "STOP"},
     
@@ -31,14 +31,14 @@ local radioStations = {
     {name = "🧘 " .. LP("Meditation 2 (Original)", "ध्यान संगीत 2 (पुराना)"), url = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20music%202.mp3"},
     {name = "🧘 " .. LP("Meditation 3 (Original)", "ध्यान संगीत 3 (पुराना)"), url = "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/Meditation%20Music%20-%201%2C.mp3"},
 
-    -- ⬇️ 24/7 लाइव रिलैक्सिंग रेडियो ⬇️
-    {name = "🌧️ " .. LP("Rain & Nature", "बारिश और प्रकृति"), url = "http://stream.laut.fm/nature"},
-    {name = "🎵 " .. LP("Lo-Fi Chill", "लो-फाई चिल"), url = "http://stream.laut.fm/lofi"},
-    {name = "🎹 " .. LP("Relaxing Piano", "रिलैक्सिंग पियानो"), url = "http://stream.laut.fm/piano"},
-    {name = "🎻 " .. LP("Classical Focus", "क्लासिकल फोकस"), url = "http://stream.laut.fm/classical"},
-    {name = "🎷 " .. LP("Smooth Jazz", "स्मूथ जैज़"), url = "http://stream.laut.fm/jazz"},
-    {name = "🧘 " .. LP("Deep Meditation", "गहरा ध्यान"), url = "http://stream.laut.fm/meditation"},
-    {name = "🌌 " .. LP("Ambient Space", "एम्बिएंट स्पेस"), url = "http://stream.laut.fm/ambient"}
+    -- ⬇️ नए 24/7 लाइव सुरक्षित (HTTPS) रेडियो ⬇️
+    {name = "🎵 " .. LP("Lo-Fi Chill", "लो-फाई चिल"), url = "https://streams.ilovemusic.de/iloveradio17.mp3"},
+    {name = "🎹 " .. LP("Relaxing Piano", "रिलैक्सिंग पियानो"), url = "https://stream.srg-ssr.ch/m/rsc_de/mp3_128"},
+    {name = "🎻 " .. LP("Classical Focus", "क्लासिकल फोकस"), url = "https://strm112.1.fm/aclassic_mobile_mp3"},
+    {name = "🎷 " .. LP("Smooth Jazz", "स्मूथ जैज़"), url = "https://strm112.1.fm/smoothjazz_mobile_mp3"},
+    {name = "🧘 " .. LP("Deep Sleep & Ambient", "गहरा ध्यान व शांति"), url = "https://maggie.torontocast.com:8076/stream"},
+    {name = "🎸 " .. LP("Acoustic Guitar", "अकॉस्टिक गिटार"), url = "https://strm112.1.fm/guitars_mobile_mp3"},
+    {name = "☕ " .. LP("Chillout Lounge", "चिलआउट लाउंज"), url = "https://strm112.1.fm/chilloutlounge_mobile_mp3"}
 }
 
 -- 🔥 THE MAGIC: पुराने मेनू को ओवरराइट कर रहे हैं 🔥
