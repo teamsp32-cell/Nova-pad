@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- 100% Working Find & Replace (Auto-Trim & Reader Mode Support)
+-- 100% Working Find & Replace (Java Native Trim & Sync)
 
 require "import"
 import "android.view.*"
@@ -69,7 +69,7 @@ local function openClipboardManager()
 end
 
 -- ==========================================
--- 2. 🔄 स्मार्ट फाइंड एंड रिप्लेस (The Ultimate Fix)
+-- 2. 🔄 स्मार्ट फाइंड एंड रिप्लेस (Native Java Trim)
 -- ==========================================
 local function openFindAndReplace()
     local layout = LinearLayout(patchActivity)
@@ -95,9 +95,12 @@ local function openFindAndReplace()
     local posBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE)
     posBtn.setOnClickListener(View.OnClickListener{
         onClick = function()
-            -- 🔥 THE FIX: दोनों शब्दों के आगे-पीछे के फालतू स्पेस हटाना (Auto-Trim)
-            local findText = editFind.getText().toString():gsub("^%s*(.-)%s*$", "%1")
-            local replaceText = editReplace.getText().toString():gsub("^%s*(.-)%s*$", "%1")
+            -- 🔥 THE FIX: शुद्ध Java का .trim() इस्तेमाल किया है जो हर तरह के अदृश्य स्पेस को मार देता है!
+            local rawFind = editFind.getText().toString()
+            local rawReplace = editReplace.getText().toString()
+            
+            local findText = tostring(String(rawFind).trim())
+            local replaceText = tostring(String(rawReplace).trim())
             
             if #findText == 0 then
                 Toast.makeText(patchActivity, "पुराना शब्द डालना ज़रूरी है!", 0).show()
@@ -108,7 +111,7 @@ local function openFindAndReplace()
             local jReplace = String(replaceText)
             local success = false
             
-            -- 1. एडिटर मोड (Editor) में चेक और रिप्लेस करें
+            -- 1. एडिटर मोड (Editor) में रिप्लेस करो
             pcall(function()
                 if noteEditor and noteEditor.getText then
                     local text = tostring(noteEditor.getText())
@@ -120,7 +123,7 @@ local function openFindAndReplace()
                 end
             end)
             
-            -- 2. रीडर मोड (Reader) में चेक और रिप्लेस करें
+            -- 2. रीडर मोड (Reader) में रिप्लेस करो
             pcall(function()
                 if readerBody and readerBody.getText then
                     local text = tostring(readerBody.getText())
@@ -265,4 +268,4 @@ _G.openSmartTextCleaner = function()
     })
 end
 
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Smart Replacer Fix)", 1).show()
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Smart Trim Active)", 1).show()
