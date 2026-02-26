@@ -1,11 +1,23 @@
--- 🚀 NOVA PAD - AUTO POP-UP NOTIFICATION (Cloud Master) 🚀
+-- 🚀 NOVA PAD - AUTO POP-UP NOTIFICATION (System Language Detector) 🚀
 
 require "import"
 import "android.app.AlertDialog"
+import "java.util.Locale" -- 🔥 THE FIX: फोन की असली भाषा पकड़ने वाला टूल
 
--- 🌍 1. यूज़र की सेट की हुई भाषा (Language) चेक करें
-local lang = _G.appLanguage or "hi" 
+-- 🌍 1. भाषा का ऑटो-डिटेक्शन
+local lang = _G.appLanguage
 
+-- अगर ऐप का वेरिएबल खाली है, तो फोन की सिस्टम भाषा (System Language) निकालो
+if not lang or lang == "" then
+    local sysLang = tostring(Locale.getDefault().getLanguage())
+    if sysLang == "hi" then
+        lang = "hi"
+    else
+        lang = "en" -- हिंदी छोड़कर बाकी पूरी दुनिया के लिए इंग्लिश
+    end
+end
+
+-- 🌍 2. डिक्शनरी
 local titles = {
     hi = "🎉 Nova Pad का नया 'प्रो' अपडेट!",
     en = "🎉 Nova Pad 'Pro' Update is Here!"
@@ -30,11 +42,15 @@ local messages = {
 local finalTitle = titles[lang] or titles["en"]
 local finalMessage = messages[lang] or messages["en"]
 
--- 🔥 2. THE FIX: जैसे ही मास्टर इस फाइल को पढ़ेगा, यह डायलॉग तुरंत स्क्रीन पर आ जाएगा!
+-- बटन का टेक्स्ट भी भाषा के हिसाब से
+local btnText = "Awesome!"
+if lang == "hi" then btnText = "कमाल है!" end
+
+-- 🔥 3. पॉप-अप दिखाना
 pcall(function()
     local dlg = AlertDialog.Builder(activity)
     dlg.setTitle(finalTitle)
     dlg.setMessage(finalMessage)
-    dlg.setPositiveButton("कमाल है! (Awesome)", nil)
+    dlg.setPositiveButton(btnText, nil)
     dlg.show()
 end)
