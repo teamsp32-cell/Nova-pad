@@ -1,5 +1,5 @@
 -- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
--- All Features + Mega Fetcher + Smart Clipboard + Multilingual (Silent Load)
+-- All Features + Mega Fetcher + Smart Clipboard + 100% Multilingual (Silent)
 
 require "import"
 import "android.view.*"
@@ -20,7 +20,7 @@ _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
 
 -- ==========================================
--- 🌍 1. भाषा डिक्शनरी (Multilingual Dictionary)
+-- 🌍 1. भाषा डिक्शनरी (100% Multilingual Dictionary)
 -- ==========================================
 local langData = {
     hi = {
@@ -37,7 +37,10 @@ local langData = {
         tool_title = "🧰 स्मार्ट टेक्स्ट टूल्स", tool_clip = "📋 क्लिपबोर्ड मैनेजर",
         tool_fnr = "🔄 फाइंड एंड रिप्लेस", tool_smart_clip = "✂️ स्मार्ट क्लिपबोर्ड: ",
         tool_curtain = "🥷 प्राइवेसी कर्टेन", tool_vol = "🔊 वॉल्यूम कर्सर: ",
-        toggled = "सेटिंग बदल गई!", manual_btn = "📖 यूज़र मैन्युअल (Help)"
+        toggled = "सेटिंग बदल गई!", manual_btn = "📖 यूज़र मैन्युअल (Help)",
+        loading_manual = "मैन्युअल लोड हो रहा है...", 
+        offline_manual = "आपका इंटरनेट बंद है या लिंक गलत है।\n\n(ऑफ़लाइन मैन्युअल यहाँ दिखेगा)",
+        status_on = "चालू 🟢", status_off = "बंद 🔴"
     },
     en = {
         empty = "[Empty]", slot_empty = "Slot is empty!", clip_title = "📋 Clipboard Manager",
@@ -53,7 +56,10 @@ local langData = {
         tool_title = "🧰 Smart Tools", tool_clip = "📋 Clipboard Manager",
         tool_fnr = "🔄 Find & Replace", tool_smart_clip = "✂️ Smart Clipboard: ",
         tool_curtain = "🥷 Privacy Curtain", tool_vol = "🔊 Volume Cursor: ",
-        toggled = "Toggled!", manual_btn = "📖 User Manual (Help)"
+        toggled = "Toggled!", manual_btn = "📖 User Manual (Help)",
+        loading_manual = "Loading manual...", 
+        offline_manual = "Internet is offline or link is invalid.\n\n(Offline manual here)",
+        status_on = "ON 🟢", status_off = "OFF 🔴"
     }
 }
 
@@ -207,9 +213,9 @@ end
 -- 📖 5. क्लाउड यूज़र मैन्युअल (GitHub Manual)
 -- ==========================================
 local function openUserManual()
-    -- 🔥 यहाँ अपना GitHub Raw Link डालना है! (अभी मैंने dummy लिंक रखा है)
+    -- 🔥 यहाँ अपना GitHub Raw Link डालना है! (अपना असली लिंक यहीं पेस्ट करना)
     local manualUrl = "https://raw.githubusercontent.com/username/repo/main/manual.txt"
-    Toast.makeText(publicActivity, "लोड हो रहा है...", 0).show()
+    Toast.makeText(publicActivity, L("loading_manual"), 0).show()
     
     Http.get(manualUrl, function(code, content)
         local sv = ScrollView(publicActivity)
@@ -217,7 +223,7 @@ local function openUserManual()
         tv.setTextSize(16); tv.setPadding(40, 40, 40, 40); tv.setFocusable(true)
         
         if code == 200 and content and #content > 5 then tv.setText(content)
-        else tv.setText("आपका इंटरनेट बंद है या लिंक गलत है।\n\nयहाँ अपना डिफ़ॉल्ट मैन्युअल लिख दें।") end
+        else tv.setText(L("offline_manual")) end
         
         sv.addView(tv)
         AlertDialog.Builder(publicActivity).setTitle(L("manual_btn")).setView(sv).setPositiveButton(L("close"), nil).show()
@@ -235,7 +241,7 @@ pcall(function()
                 local textToCopy = getFullRawText() 
                 if #textToCopy:gsub("%s+", "") == 0 then Toast.makeText(publicActivity, L("nothing_copy"), 0).show() return end
                 
-                -- 🔥 अगर स्मार्ट क्लिपबोर्ड ON है, तो 1-2-3 वाला पॉप-अप खुलेगा!
+                -- स्मार्ट क्लिपबोर्ड ON है
                 if _G.smartClipboardEnabled then
                     local opts = {L("slot").." 1 ("..L("save_slot")..")", L("slot").." 2 ("..L("save_slot")..")", L("slot").." 3 ("..L("save_slot")..")"}
                     local lv = ListView(publicActivity)
@@ -250,7 +256,7 @@ pcall(function()
                         end
                     })
                 else
-                    -- अगर OFF है, तो डायरेक्ट नॉर्मल कॉपी होगा
+                    -- स्मार्ट क्लिपबोर्ड OFF है
                     publicActivity.getSystemService(Context.CLIPBOARD_SERVICE).setPrimaryClip(ClipData.newPlainText("Nova", textToCopy))
                     Toast.makeText(publicActivity, L("copied"), 0).show()
                 end
@@ -309,8 +315,9 @@ local function toggleVolumeNav()
 end
 
 _G.openSmartTextCleaner = function()
-    local cbStatus = _G.smartClipboardEnabled and "ON 🟢" or "OFF 🔴"
-    local volStatus = _G.volNavEnabled and "ON 🟢" or "OFF 🔴"
+    -- 🔥 यहाँ भी मल्टीलिंगुअल डिक्शनरी से स्टेटस उठेगा (ON/OFF की जगह चालू/बंद)
+    local cbStatus = _G.smartClipboardEnabled and L("status_on") or L("status_off")
+    local volStatus = _G.volNavEnabled and L("status_on") or L("status_off")
     
     local opts = {
         L("tool_clip"),
@@ -318,7 +325,7 @@ _G.openSmartTextCleaner = function()
         L("tool_smart_clip") .. cbStatus,
         L("tool_curtain"),
         L("tool_vol") .. volStatus,
-        L("manual_btn") -- 📖 मैन्युअल का बटन भी जुड़ गया!
+        L("manual_btn")
     }
     
     local lv = ListView(publicActivity)
@@ -333,8 +340,10 @@ _G.openSmartTextCleaner = function()
             elseif position == 2 then _G.smartClipboardEnabled = not _G.smartClipboardEnabled; Toast.makeText(publicActivity, L("toggled"), 0).show()
             elseif position == 3 then toggleCurtain()
             elseif position == 4 then toggleVolumeNav()
-            elseif position == 5 then openUserManual() -- 📖 मैन्युअल यहाँ से खुलेगा
+            elseif position == 5 then openUserManual() 
             end
         end
     })
 end
+
+-- 🤫 (कोई फालतू टोस्ट नहीं, 100% साइलेंट लोडिंग)
