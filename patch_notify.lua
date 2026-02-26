@@ -1,23 +1,30 @@
--- 🚀 NOVA PAD - AUTO POP-UP NOTIFICATION (System Language Detector) 🚀
+-- 🚀 NOVA PAD - ONE-TIME AUTO NOTIFICATION 🚀
 
 require "import"
 import "android.app.AlertDialog"
-import "java.util.Locale" -- 🔥 THE FIX: फोन की असली भाषा पकड़ने वाला टूल
+import "java.util.Locale"
+import "android.content.Context"
 
--- 🌍 1. भाषा का ऑटो-डिटेक्शन
-local lang = _G.appLanguage
+-- 🔥 1. अपडेट का वर्ज़न (जब भी नया अपडेट दो, इस नंबर को 3 से 4, 4 से 5 कर देना)
+local update_version_code = 3 
 
--- अगर ऐप का वेरिएबल खाली है, तो फोन की सिस्टम भाषा (System Language) निकालो
-if not lang or lang == "" then
-    local sysLang = tostring(Locale.getDefault().getLanguage())
-    if sysLang == "hi" then
-        lang = "hi"
-    else
-        lang = "en" -- हिंदी छोड़कर बाकी पूरी दुनिया के लिए इंग्लिश
-    end
+-- 🧠 2. फोन की 'याददाश्त' चेक करना (SharedPreferences)
+local prefs = activity.getSharedPreferences("NovaPadUpdateMemory", Context.MODE_PRIVATE)
+local last_seen_version = prefs.getInt("seen_version", 0)
+
+-- अगर यूज़र ने यह वर्ज़न पहले ही देख लिया है, तो कोड यहीं रुक जाएगा (कोई पॉप-अप नहीं आएगा)
+if last_seen_version >= update_version_code then
+    return 
 end
 
--- 🌍 2. डिक्शनरी
+-- 🌍 3. भाषा का ऑटो-डिटेक्शन
+local lang = _G.appLanguage
+if not lang or lang == "" then
+    local sysLang = tostring(Locale.getDefault().getLanguage())
+    if sysLang == "hi" then lang = "hi" else lang = "en" end
+end
+
+-- 🌍 4. डिक्शनरी
 local titles = {
     hi = "🎉 Nova Pad का नया 'प्रो' अपडेट!",
     en = "🎉 Nova Pad 'Pro' Update is Here!"
@@ -42,15 +49,30 @@ local messages = {
 local finalTitle = titles[lang] or titles["en"]
 local finalMessage = messages[lang] or messages["en"]
 
--- बटन का टेक्स्ट भी भाषा के हिसाब से
 local btnText = "Awesome!"
 if lang == "hi" then btnText = "कमाल है!" end
 
--- 🔥 3. पॉप-अप दिखाना
+-- 🔥 5. पॉप-अप दिखाना और 'मेमोरी' में सेव करना
 pcall(function()
     local dlg = AlertDialog.Builder(activity)
     dlg.setTitle(finalTitle)
     dlg.setMessage(finalMessage)
-    dlg.setPositiveButton(btnText, nil)
+    
+    -- जब यूज़र बटन दबाएगा, तो मेमोरी में सेव हो जाएगा कि उसने यह वर्ज़न देख लिया है
+    dlg.setPositiveButton(btnText, function()
+        local editor = prefs.edit()
+        editor.putInt("seen_version", update_version_code)
+        editor.apply()
+    end)
+    
+    -- अगर यूज़र बाहर क्लिक करके पॉप-अप हटा दे, तब भी सेव कर लो ताकि बार-बार न आए
+    dlg.setOnCancelListener{
+        onCancel = function(dialog)
+            local editor = prefs.edit()
+            editor.putInt("seen_version", update_version_code)
+            editor.apply()
+        end
+    }
+    
     dlg.show()
 end)
