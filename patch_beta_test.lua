@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- 100% Bulletproof Mega-Stitcher (कोई पैराग्राफ नहीं छूटेगा)
+-- जम्पर हटा दिया गया है। नया फीचर: फाइंड एंड रिप्लेस (Bulk Word Replacer)
 
 require "import"
 import "android.view.*"
@@ -19,68 +19,7 @@ _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
 _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
 
--- 🎯 THE MEGA-FETCHER: स्क्रीन के हर कोने से टेक्स्ट ढूँढकर जोड़ने वाला इंजन
-local function getFullRawText()
-    local texts = {}
-    
-    -- तरीका 1: अगर रीडर में एक बड़ा टेक्स्ट बॉक्स (readerBody) है
-    pcall(function()
-        if readerBody and readerBody.getText then
-            local t = tostring(readerBody.getText())
-            if #t:gsub("%s+", "") > 10 then table.insert(texts, t) end
-        end
-    end)
-    
-    -- तरीका 2: अगर पैराग्राफ की लिस्ट (paraList / ListView) है
-    pcall(function()
-        if paraList and paraList.getAdapter then
-            local adapter = paraList.getAdapter()
-            if adapter then
-                for i = 0, adapter.getCount() - 1 do
-                    local item = adapter.getItem(i)
-                    if item then table.insert(texts, tostring(item)) end
-                end
-            end
-        end
-    end)
-
-    -- तरीका 3: मेन एडिटर (अगर खुला हो)
-    if #texts == 0 then
-        pcall(function()
-            if noteEditor and noteEditor.getText then
-                local t = tostring(noteEditor.getText())
-                if #t:gsub("%s+", "") > 10 then table.insert(texts, t) end
-            end
-        end)
-    end
-    
-    -- तरीका 4: द अल्टीमेट स्क्रीन स्कैनर (सब कुछ जोड़ दो!)
-    if #texts == 0 then
-        local function scanAndStitch(v)
-            pcall(function()
-                if v and v.getText then
-                    local t = tostring(v.getText()):gsub("^%s+", ""):gsub("%s+$", "")
-                    -- छोटे बटन्स (Copy, Jump) को छोड़कर बाकी सब जोड़ लो
-                    if #t > 20 then table.insert(texts, t) end
-                end
-            end)
-            pcall(function()
-                if v and v.getChildCount then
-                    for i = 0, v.getChildCount() - 1 do
-                        scanAndStitch(v.getChildAt(i))
-                    end
-                end
-            end)
-        end
-        pcall(function()
-            local rootView = patchActivity.getWindow().getDecorView()
-            scanAndStitch(rootView)
-        end)
-    end
-    
-    -- सारे टुकड़ों को एक साथ जोड़कर वापस भेजो
-    return table.concat(texts, "\n\n")
-end
+-- 🗑️ 'Find' बटन का लॉन्ग-प्रेस (जम्पर) यहाँ से पूरी तरह हटा दिया गया है!
 
 -- ==========================================
 -- 1. 📋 स्मार्ट क्लिपबोर्ड मैनेजर
@@ -132,109 +71,82 @@ local function openClipboardManager()
 end
 
 -- ==========================================
--- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Number Combo Box)
+-- 2. 🔄 नया फीचर: स्मार्ट फाइंड एंड रिप्लेस
 -- ==========================================
-local function openStructureJumperReader()
-    local text = getFullRawText() 
-    
-    if #text:gsub("%s+", "") == 0 then 
-        Toast.makeText(patchActivity, "कोई टेक्स्ट नहीं मिला! फिर से कोशिश करें।", 0).show() 
-        return 
+local function openFindAndReplace()
+    -- यह टूल सिर्फ 'Editor' (एडिटर) में काम करेगा ताकि सीधा बदलाव हो सके
+    if not noteEditor or noteEditor.getVisibility() ~= 0 then
+        Toast.makeText(patchActivity, "पहले एडिटर (Editor) खोलें!", 0).show()
+        return
     end
+
+    local layout = LinearLayout(patchActivity)
+    layout.setOrientation(LinearLayout.VERTICAL)
+    layout.setPadding(40, 20, 40, 20)
+
+    local editFind = EditText(patchActivity)
+    editFind.setHint("पुराना शब्द (क्या ढूँढना है?)")
     
-    text = text:gsub("\r\n", "\n"):gsub("\r", "\n")
-    local lines = {}
-    local positions = {}
-    local paraNum = 1
-    local currentPos = 0
-    
-    local javaText = String(text)
-    local linesArray = javaText.split("\n")
-    
-    for i = 0, linesArray.length - 1 do
-        local lineObj = linesArray[i]
-        local luaLine = tostring(lineObj)
-        
-        local trimmed = luaLine:gsub("^%s+", ""):gsub("%s+$", "")
-        
-        if #trimmed > 2 then
-            table.insert(lines, "पैराग्राफ " .. paraNum .. " ➡️ " .. string.sub(trimmed, 1, 40) .. "...")
-            table.insert(positions, currentPos)
-            paraNum = paraNum + 1
-        end
-        
-        currentPos = currentPos + lineObj.length() + 1
-    end
-    
-    if #lines == 0 then 
-        Toast.makeText(patchActivity, "कोई पैराग्राफ नहीं मिला!", 0).show() 
-        return 
-    end
-    
-    local lv = ListView(patchActivity)
-    lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, lines))
-    
+    local editReplace = EditText(patchActivity)
+    editReplace.setHint("नया शब्द (किससे बदलना है?)")
+
+    layout.addView(editFind)
+    layout.addView(editReplace)
+
     local dlg = AlertDialog.Builder(patchActivity)
-    .setTitle("📊 कुल " .. #lines .. " पैराग्राफ मिले")
-    .setView(lv)
+    .setTitle("🔄 फाइंड एंड रिप्लेस")
+    .setView(layout)
+    .setPositiveButton("सब बदलें", nil)
     .setNegativeButton("बंद करें", nil)
     .show()
-    
-    lv.setOnItemClickListener(AdapterView.OnItemClickListener{
-        onItemClick = function(parent, view, position, id)
-            dlg.dismiss()
-            local targetPos = positions[position + 1]
+
+    -- बटन का लॉजिक ताकि अगर बॉक्स खाली हो तो मेनू बंद न हो
+    local posBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE)
+    posBtn.setOnClickListener(View.OnClickListener{
+        onClick = function()
+            local findText = editFind.getText().toString()
+            local replaceText = editReplace.getText().toString()
             
-            pcall(function()
-                -- कर्सर सेट करना और जम्प मारना
-                if readerBody then
-                    readerBody.requestFocus()
-                    if readerBody.setSelection then
-                        readerBody.setSelection(targetPos)
-                    end
-                    
-                    local layout = readerBody.getLayout()
-                    if layout then
-                        local lineNum = layout.getLineForOffset(targetPos)
-                        local y = layout.getLineTop(lineNum)
-                        
-                        pcall(function() readerBody.scrollTo(0, y) end)
-                        if scrollFullText then scrollFullText.scrollTo(0, y) end
-                    end
-                elseif paraList then
-                    -- अगर पैराग्राफ लिस्ट मोड है
-                    paraList.setSelection(position)
-                end
-            end)
-            Toast.makeText(patchActivity, "📌 पैराग्राफ " .. (position + 1) .. " पर पहुँच गए!", 0).show()
+            if #findText == 0 then
+                Toast.makeText(patchActivity, "पुराना शब्द डालना ज़रूरी है!", 0).show()
+                return
+            end
+            
+            local currentText = noteEditor.getText().toString()
+            local javaString = String(currentText)
+            
+            -- चेक करें कि शब्द मौजूद है भी या नहीं
+            if not javaString.contains(findText) then
+                Toast.makeText(patchActivity, "यह शब्द आपके टेक्स्ट में नहीं मिला!", 0).show()
+                return
+            end
+
+            -- Java Native Replace (ताकि कोई क्रैश न हो)
+            local newText = javaString.replace(findText, replaceText)
+            noteEditor.setText(newText)
+            
+            Toast.makeText(patchActivity, "✨ सारे शब्द सफलतापूर्वक बदल दिए गए!", 1).show()
+            dlg.dismiss()
         end
     })
 end
 
-pcall(function()
-    if btnReaderSearch then
-        btnReaderSearch.setOnLongClickListener(View.OnLongClickListener{
-            onLongClick = function()
-                openStructureJumperReader()
-                return true
-            end
-        })
-    end
-end)
-
 -- ==========================================
--- 3. ✂️ कॉपी बटन का ओवरराइड
+-- 3. ✂️ कॉपी बटन का ओवरराइड (स्मार्ट क्लिपबोर्ड के लिए)
 -- ==========================================
 pcall(function()
     if btnReaderCopy then
         btnReaderCopy.setOnClickListener(nil)
         btnReaderCopy.setOnClickListener(View.OnClickListener{
             onClick = function()
-                local textToCopy = getFullRawText() 
-                if #textToCopy:gsub("%s+", "") == 0 then 
-                    Toast.makeText(patchActivity, "कॉपी करने के लिए कुछ नहीं मिला!", 0).show()
-                    return 
+                local textToCopy = ""
+                if noteEditor and noteEditor.getVisibility() == 0 then
+                    textToCopy = noteEditor.getText().toString()
+                elseif readerBody then
+                    textToCopy = readerBody.getText().toString()
                 end
+                
+                if #textToCopy:gsub("%s+", "") == 0 then return end
                 
                 if _G.smartClipboardEnabled then
                     local opts = {"स्लॉट 1 में सेव करें", "स्लॉट 2 में सेव करें", "स्लॉट 3 में सेव करें"}
@@ -259,7 +171,7 @@ pcall(function()
 end)
 
 -- ==========================================
--- 4. 🧰 स्मार्ट टूल्स मेनू
+-- 4. 🧰 स्मार्ट टूल्स मेनू (नए फीचर्स के साथ)
 -- ==========================================
 local function toggleCurtain()
     if _G.curtainView then
@@ -319,6 +231,7 @@ _G.openSmartTextCleaner = function()
     
     local opts = {
         "📋 क्लिपबोर्ड मैनेजर (Share/Paste)",
+        "🔄 फाइंड एंड रिप्लेस (बल्क में शब्द बदलें)", -- 🔥 नया फीचर यहाँ जुड़ा!
         "✂️ स्मार्ट क्लिपबोर्ड टॉगल: " .. cbStatus,
         "🥷 प्राइवेसी कर्टेन (Black Screen)",
         "🔊 वॉल्यूम कर्सर टॉगल: " .. volStatus
@@ -332,12 +245,20 @@ _G.openSmartTextCleaner = function()
         onItemClick = function(parent, view, position, id)
             dlg.dismiss()
             if position == 0 then openClipboardManager()
-            elseif position == 1 then _G.smartClipboardEnabled = not _G.smartClipboardEnabled; Toast.makeText(patchActivity, "स्मार्ट क्लिपबोर्ड टॉगल किया गया!", 0).show()
-            elseif position == 2 then toggleCurtain()
-            elseif position == 3 then toggleVolumeNav()
+            elseif position == 1 then openFindAndReplace() -- कॉल कर दिया
+            elseif position == 2 then _G.smartClipboardEnabled = not _G.smartClipboardEnabled; Toast.makeText(patchActivity, "स्मार्ट क्लिपबोर्ड टॉगल किया गया!", 0).show()
+            elseif position == 3 then toggleCurtain()
+            elseif position == 4 then toggleVolumeNav()
             end
         end
     })
 end
 
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Mega-Stitcher ON)", 1).show()
+-- Find बटन से पुराना जम्पर (Long-press) हटाना
+pcall(function()
+    if btnReaderSearch then
+        btnReaderSearch.setOnLongClickListener(nil)
+    end
+end)
+
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Find & Replace Added)", 1).show()
