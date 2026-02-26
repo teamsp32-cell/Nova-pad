@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- जम्पर हटा दिया गया है। नया फीचर: फाइंड एंड रिप्लेस (Bulk Word Replacer)
+-- 100% Working Find & Replace (Auto-Trim & Reader Mode Support)
 
 require "import"
 import "android.view.*"
@@ -18,8 +18,6 @@ _G.betaClipboard = _G.betaClipboard or {"[खाली]", "[खाली]", "[�
 _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
 _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
-
--- 🗑️ 'Find' बटन का लॉन्ग-प्रेस (जम्पर) यहाँ से पूरी तरह हटा दिया गया है!
 
 -- ==========================================
 -- 1. 📋 स्मार्ट क्लिपबोर्ड मैनेजर
@@ -71,15 +69,9 @@ local function openClipboardManager()
 end
 
 -- ==========================================
--- 2. 🔄 नया फीचर: स्मार्ट फाइंड एंड रिप्लेस
+-- 2. 🔄 स्मार्ट फाइंड एंड रिप्लेस (The Ultimate Fix)
 -- ==========================================
 local function openFindAndReplace()
-    -- यह टूल सिर्फ 'Editor' (एडिटर) में काम करेगा ताकि सीधा बदलाव हो सके
-    if not noteEditor or noteEditor.getVisibility() ~= 0 then
-        Toast.makeText(patchActivity, "पहले एडिटर (Editor) खोलें!", 0).show()
-        return
-    end
-
     local layout = LinearLayout(patchActivity)
     layout.setOrientation(LinearLayout.VERTICAL)
     layout.setPadding(40, 20, 40, 20)
@@ -100,33 +92,52 @@ local function openFindAndReplace()
     .setNegativeButton("बंद करें", nil)
     .show()
 
-    -- बटन का लॉजिक ताकि अगर बॉक्स खाली हो तो मेनू बंद न हो
     local posBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE)
     posBtn.setOnClickListener(View.OnClickListener{
         onClick = function()
-            local findText = editFind.getText().toString()
-            local replaceText = editReplace.getText().toString()
+            -- 🔥 THE FIX: दोनों शब्दों के आगे-पीछे के फालतू स्पेस हटाना (Auto-Trim)
+            local findText = editFind.getText().toString():gsub("^%s*(.-)%s*$", "%1")
+            local replaceText = editReplace.getText().toString():gsub("^%s*(.-)%s*$", "%1")
             
             if #findText == 0 then
                 Toast.makeText(patchActivity, "पुराना शब्द डालना ज़रूरी है!", 0).show()
                 return
             end
             
-            local currentText = noteEditor.getText().toString()
-            local javaString = String(currentText)
+            local jFind = String(findText)
+            local jReplace = String(replaceText)
+            local success = false
             
-            -- चेक करें कि शब्द मौजूद है भी या नहीं
-            if not javaString.contains(findText) then
-                Toast.makeText(patchActivity, "यह शब्द आपके टेक्स्ट में नहीं मिला!", 0).show()
-                return
-            end
+            -- 1. एडिटर मोड (Editor) में चेक और रिप्लेस करें
+            pcall(function()
+                if noteEditor and noteEditor.getText then
+                    local text = tostring(noteEditor.getText())
+                    if String(text).contains(jFind) then
+                        local newText = String(text).replace(jFind, jReplace)
+                        noteEditor.setText(newText)
+                        success = true
+                    end
+                end
+            end)
+            
+            -- 2. रीडर मोड (Reader) में चेक और रिप्लेस करें
+            pcall(function()
+                if readerBody and readerBody.getText then
+                    local text = tostring(readerBody.getText())
+                    if String(text).contains(jFind) then
+                        local newText = String(text).replace(jFind, jReplace)
+                        readerBody.setText(newText)
+                        success = true
+                    end
+                end
+            end)
 
-            -- Java Native Replace (ताकि कोई क्रैश न हो)
-            local newText = javaString.replace(findText, replaceText)
-            noteEditor.setText(newText)
-            
-            Toast.makeText(patchActivity, "✨ सारे शब्द सफलतापूर्वक बदल दिए गए!", 1).show()
-            dlg.dismiss()
+            if success then
+                Toast.makeText(patchActivity, "✨ कमाल! सारे '" .. findText .. "' को '" .. replaceText .. "' में बदल दिया गया!", 1).show()
+                dlg.dismiss()
+            else
+                Toast.makeText(patchActivity, "❌ '" .. findText .. "' शब्द फाइल में कहीं नहीं मिला!", 1).show()
+            end
         end
     })
 end
@@ -171,7 +182,7 @@ pcall(function()
 end)
 
 -- ==========================================
--- 4. 🧰 स्मार्ट टूल्स मेनू (नए फीचर्स के साथ)
+-- 4. 🧰 स्मार्ट टूल्स मेनू 
 -- ==========================================
 local function toggleCurtain()
     if _G.curtainView then
@@ -231,7 +242,7 @@ _G.openSmartTextCleaner = function()
     
     local opts = {
         "📋 क्लिपबोर्ड मैनेजर (Share/Paste)",
-        "🔄 फाइंड एंड रिप्लेस (बल्क में शब्द बदलें)", -- 🔥 नया फीचर यहाँ जुड़ा!
+        "🔄 फाइंड एंड रिप्लेस (बल्क में शब्द बदलें)",
         "✂️ स्मार्ट क्लिपबोर्ड टॉगल: " .. cbStatus,
         "🥷 प्राइवेसी कर्टेन (Black Screen)",
         "🔊 वॉल्यूम कर्सर टॉगल: " .. volStatus
@@ -245,7 +256,7 @@ _G.openSmartTextCleaner = function()
         onItemClick = function(parent, view, position, id)
             dlg.dismiss()
             if position == 0 then openClipboardManager()
-            elseif position == 1 then openFindAndReplace() -- कॉल कर दिया
+            elseif position == 1 then openFindAndReplace() 
             elseif position == 2 then _G.smartClipboardEnabled = not _G.smartClipboardEnabled; Toast.makeText(patchActivity, "स्मार्ट क्लिपबोर्ड टॉगल किया गया!", 0).show()
             elseif position == 3 then toggleCurtain()
             elseif position == 4 then toggleVolumeNav()
@@ -254,11 +265,4 @@ _G.openSmartTextCleaner = function()
     })
 end
 
--- Find बटन से पुराना जम्पर (Long-press) हटाना
-pcall(function()
-    if btnReaderSearch then
-        btnReaderSearch.setOnLongClickListener(nil)
-    end
-end)
-
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Find & Replace Added)", 1).show()
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Smart Replacer Fix)", 1).show()
