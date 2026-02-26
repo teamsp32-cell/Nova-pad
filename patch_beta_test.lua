@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- 100% Fail-Proof "Screen Scanner" Text Fetcher
+-- 100% Numbered Paragraph Combo Box & Auto-Scroll
 
 require "import"
 import "android.view.*"
@@ -18,29 +18,23 @@ _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
 _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
 
--- 🔍 THE HACK: पूरी स्क्रीन को स्कैन करके सबसे बड़ा टेक्स्ट ढूँढने वाला फंक्शन
+-- 🔍 स्क्रीन से टेक्स्ट उठाने का फंक्शन
 local function getVisibleText()
     local biggestText = ""
-    
-    -- 1. पहले मेन एडिटर को चेक करो
     pcall(function()
         if noteEditor and noteEditor.getText() then
             local t = tostring(noteEditor.getText())
             if #t > #biggestText then biggestText = t end
         end
     end)
-    
-    -- 2. अगर एडिटर खाली है (रीडर मोड), तो पूरी स्क्रीन स्कैन करो!
     if #biggestText:gsub("%s+", "") < 5 then
         local function scanViews(v)
-            -- अगर इस व्यू में टेक्स्ट है, तो चेक करो कि क्या वह सबसे बड़ा है
             pcall(function()
                 if v and v.getText then
                     local t = tostring(v.getText())
                     if #t > #biggestText then biggestText = t end
                 end
             end)
-            -- अगर इसके अंदर और भी व्यूज़ हैं, तो उनके अंदर जाओ
             pcall(function()
                 if v and v.getChildCount then
                     for i = 0, v.getChildCount() - 1 do
@@ -49,13 +43,11 @@ local function getVisibleText()
                 end
             end)
         end
-        
         pcall(function()
             local rootView = patchActivity.getWindow().getDecorView()
             scanViews(rootView)
         end)
     end
-    
     return biggestText
 end
 
@@ -116,28 +108,41 @@ local function openClipboardManager()
 end
 
 -- ==========================================
--- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Paragraph Finder)
+-- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Number Combo Box)
 -- ==========================================
 local function openStructureJumperReader()
-    local text = getVisibleText() -- 🔥 नया 'स्कैनर' यहाँ काम करेगा
+    local text = getVisibleText()
     
     if #text:gsub("%s+", "") == 0 then 
         Toast.makeText(patchActivity, "स्क्रीन पर कोई टेक्स्ट नहीं मिला!", 0).show() 
         return 
     end
     
+    text = text:gsub("\r\n", "\n")
     local lines = {}
     local positions = {}
-    local currentPos = 0
-    local lineNum = 1
+    local paraNum = 1
     
-    for line in string.gmatch(text .. "\n", "(.-)\n") do
-        if #line:gsub("%s+", "") > 0 then
-            table.insert(lines, "पैरा " .. lineNum .. ": " .. string.sub(line, 1, 35) .. "...")
-            table.insert(positions, currentPos)
-            lineNum = lineNum + 1
+    local startIdx = 1
+    while true do
+        local endIdx = string.find(text, "\n", startIdx)
+        local line
+        if endIdx then
+            line = string.sub(text, startIdx, endIdx - 1)
+        else
+            line = string.sub(text, startIdx)
         end
-        currentPos = currentPos + #line + 1
+        
+        local trimmed = line:gsub("^%s+", ""):gsub("%s+$", "")
+        if #trimmed > 0 then
+            -- 🔥 नया कोंबो बॉक्स डिज़ाइन (TalkBack फ्रेंडली)
+            table.insert(lines, "पैराग्राफ " .. paraNum .. " ➡️ " .. string.sub(trimmed, 1, 15) .. "...")
+            table.insert(positions, startIdx - 1) 
+            paraNum = paraNum + 1
+        end
+        
+        if not endIdx then break end
+        startIdx = endIdx + 1
     end
     
     if #lines == 0 then 
@@ -148,18 +153,43 @@ local function openStructureJumperReader()
     local lv = ListView(patchActivity)
     lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, lines))
     
-    local dlg = AlertDialog.Builder(patchActivity).setTitle("🗺️ पैराग्राफ जम्पर").setView(lv).setNegativeButton("बंद करें", nil).show()
+    -- 🔥 हेडिंग में टोटल पैराग्राफ काउंट
+    local dlg = AlertDialog.Builder(patchActivity)
+    .setTitle("📊 कुल " .. #lines .. " पैराग्राफ मिले")
+    .setView(lv)
+    .setNegativeButton("बंद करें", nil)
+    .show()
     
     lv.setOnItemClickListener(AdapterView.OnItemClickListener{
         onItemClick = function(parent, view, position, id)
             dlg.dismiss()
+            local targetPos = positions[position + 1]
+            
             pcall(function()
                 if readerBody then
                     readerBody.requestFocus()
-                    readerBody.setSelection(positions[position + 1])
+                    
+                    if readerBody.setSelection then
+                        readerBody.setSelection(targetPos)
+                    end
+                    
+                    -- 🔥 100% पक्का ऑटो-स्क्रोल फिक्स
+                    local layout = readerBody.getLayout()
+                    if layout then
+                        local lineNum = layout.getLineForOffset(targetPos)
+                        local y = layout.getLineTop(lineNum)
+                        
+                        -- अगर खुद TextView स्क्रॉल होता है
+                        pcall(function() readerBody.scrollTo(0, y) end)
+                        
+                        -- अगर ScrollView के अंदर है
+                        if scrollFullText then
+                            scrollFullText.scrollTo(0, y)
+                        end
+                    end
                 end
             end)
-            Toast.makeText(patchActivity, "लाइन " .. (position + 1) .. " चुनी गई!", 0).show()
+            Toast.makeText(patchActivity, "📌 पैराग्राफ " .. (position + 1) .. " पर आ गए!", 0).show()
         end
     })
 end
@@ -184,7 +214,7 @@ pcall(function()
         btnReaderCopy.setOnClickListener(nil)
         btnReaderCopy.setOnClickListener(View.OnClickListener{
             onClick = function()
-                local textToCopy = getVisibleText() -- 🔥 नया 'स्कैनर' यहाँ भी काम करेगा
+                local textToCopy = getVisibleText()
                 
                 if #textToCopy:gsub("%s+", "") == 0 then
                     Toast.makeText(patchActivity, "कॉपी करने के लिए कुछ नहीं मिला!", 0).show()
@@ -323,4 +353,4 @@ _G.openSmartTextCleaner = function()
     })
 end
 
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Scanner ON)", 1).show()
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Numbered Combo Box Fix)", 1).show()
