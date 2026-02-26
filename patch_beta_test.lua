@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- एंड्रॉइड की मेमोरी लिमिट को बायपास करने वाला 'Hidden Editor Hack'
+-- 100% Bulletproof Mega-Stitcher (कोई पैराग्राफ नहीं छूटेगा)
 
 require "import"
 import "android.view.*"
@@ -19,25 +19,67 @@ _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
 _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
 
--- 🎯 THE HACK: स्क्रीन के बजाय सीधे 'छुपे हुए एडिटर' से पूरी कहानी निकालना
+-- 🎯 THE MEGA-FETCHER: स्क्रीन के हर कोने से टेक्स्ट ढूँढकर जोड़ने वाला इंजन
 local function getFullRawText()
-    local fullText = ""
+    local texts = {}
     
-    -- 1. मास्टर सोर्स: बैकग्राउंड में छुपे एडिटर से टेक्स्ट खींचो (यहाँ 100% टेक्स्ट होता है)
+    -- तरीका 1: अगर रीडर में एक बड़ा टेक्स्ट बॉक्स (readerBody) है
     pcall(function()
-        if noteEditor and noteEditor.getText() then
-            fullText = tostring(noteEditor.getText())
+        if readerBody and readerBody.getText then
+            local t = tostring(readerBody.getText())
+            if #t:gsub("%s+", "") > 10 then table.insert(texts, t) end
         end
     end)
     
-    -- 2. बैकअप सोर्स: अगर एडिटर नहीं मिला, तो ग्लोबल मेमोरी चेक करो
-    if #fullText:gsub("%s+", "") < 5 then
-        if _G.currentFullText then
-            fullText = _G.currentFullText
+    -- तरीका 2: अगर पैराग्राफ की लिस्ट (paraList / ListView) है
+    pcall(function()
+        if paraList and paraList.getAdapter then
+            local adapter = paraList.getAdapter()
+            if adapter then
+                for i = 0, adapter.getCount() - 1 do
+                    local item = adapter.getItem(i)
+                    if item then table.insert(texts, tostring(item)) end
+                end
+            end
         end
+    end)
+
+    -- तरीका 3: मेन एडिटर (अगर खुला हो)
+    if #texts == 0 then
+        pcall(function()
+            if noteEditor and noteEditor.getText then
+                local t = tostring(noteEditor.getText())
+                if #t:gsub("%s+", "") > 10 then table.insert(texts, t) end
+            end
+        end)
     end
     
-    return fullText
+    -- तरीका 4: द अल्टीमेट स्क्रीन स्कैनर (सब कुछ जोड़ दो!)
+    if #texts == 0 then
+        local function scanAndStitch(v)
+            pcall(function()
+                if v and v.getText then
+                    local t = tostring(v.getText()):gsub("^%s+", ""):gsub("%s+$", "")
+                    -- छोटे बटन्स (Copy, Jump) को छोड़कर बाकी सब जोड़ लो
+                    if #t > 20 then table.insert(texts, t) end
+                end
+            end)
+            pcall(function()
+                if v and v.getChildCount then
+                    for i = 0, v.getChildCount() - 1 do
+                        scanAndStitch(v.getChildAt(i))
+                    end
+                end
+            end)
+        end
+        pcall(function()
+            local rootView = patchActivity.getWindow().getDecorView()
+            scanAndStitch(rootView)
+        end)
+    end
+    
+    -- सारे टुकड़ों को एक साथ जोड़कर वापस भेजो
+    return table.concat(texts, "\n\n")
 end
 
 -- ==========================================
@@ -90,13 +132,13 @@ local function openClipboardManager()
 end
 
 -- ==========================================
--- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Raw Fetch Engine)
+-- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Number Combo Box)
 -- ==========================================
 local function openStructureJumperReader()
-    local text = getFullRawText() -- 🔥 यहाँ हमारा नया जुगाड़ काम कर रहा है!
+    local text = getFullRawText() 
     
     if #text:gsub("%s+", "") == 0 then 
-        Toast.makeText(patchActivity, "कोई टेक्स्ट नहीं मिला!", 0).show() 
+        Toast.makeText(patchActivity, "कोई टेक्स्ट नहीं मिला! फिर से कोशिश करें।", 0).show() 
         return 
     end
     
@@ -144,6 +186,7 @@ local function openStructureJumperReader()
             local targetPos = positions[position + 1]
             
             pcall(function()
+                -- कर्सर सेट करना और जम्प मारना
                 if readerBody then
                     readerBody.requestFocus()
                     if readerBody.setSelection then
@@ -158,6 +201,9 @@ local function openStructureJumperReader()
                         pcall(function() readerBody.scrollTo(0, y) end)
                         if scrollFullText then scrollFullText.scrollTo(0, y) end
                     end
+                elseif paraList then
+                    -- अगर पैराग्राफ लिस्ट मोड है
+                    paraList.setSelection(position)
                 end
             end)
             Toast.makeText(patchActivity, "📌 पैराग्राफ " .. (position + 1) .. " पर पहुँच गए!", 0).show()
@@ -184,8 +230,11 @@ pcall(function()
         btnReaderCopy.setOnClickListener(nil)
         btnReaderCopy.setOnClickListener(View.OnClickListener{
             onClick = function()
-                local textToCopy = getFullRawText() -- 🔥 यहाँ भी वही मास्टर हैक
-                if #textToCopy:gsub("%s+", "") == 0 then return end
+                local textToCopy = getFullRawText() 
+                if #textToCopy:gsub("%s+", "") == 0 then 
+                    Toast.makeText(patchActivity, "कॉपी करने के लिए कुछ नहीं मिला!", 0).show()
+                    return 
+                end
                 
                 if _G.smartClipboardEnabled then
                     local opts = {"स्लॉट 1 में सेव करें", "स्लॉट 2 में सेव करें", "स्लॉट 3 में सेव करें"}
@@ -291,4 +340,4 @@ _G.openSmartTextCleaner = function()
     })
 end
 
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Hidden Editor Hack ON)", 1).show()
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Mega-Stitcher ON)", 1).show()
