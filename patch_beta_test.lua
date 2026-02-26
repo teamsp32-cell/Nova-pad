@@ -1,5 +1,5 @@
 -- 🚀 NOVA PAD - PRO UX BETA PATCH 🚀
--- जम्पर और कॉपी बटन के लिए 'Direct UI Text Fetching' फिक्स!
+-- 100% Fail-Proof "Screen Scanner" Text Fetcher
 
 require "import"
 import "android.view.*"
@@ -18,26 +18,45 @@ _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
 _G.volNavEnabled = _G.volNavEnabled or false
 _G.curtainView = _G.curtainView or nil
 
--- 🔍 स्क्रीन से टेक्स्ट उठाने का मास्टर फंक्शन
+-- 🔍 THE HACK: पूरी स्क्रीन को स्कैन करके सबसे बड़ा टेक्स्ट ढूँढने वाला फंक्शन
 local function getVisibleText()
-    local text = ""
-    -- 1. सबसे पहले रीडर मोड की स्क्रीन से उठाने की कोशिश करो
+    local biggestText = ""
+    
+    -- 1. पहले मेन एडिटर को चेक करो
     pcall(function()
-        if readerBody and readerBody.getText() then
-            text = readerBody.getText().toString()
+        if noteEditor and noteEditor.getText() then
+            local t = tostring(noteEditor.getText())
+            if #t > #biggestText then biggestText = t end
         end
     end)
-    -- 2. अगर वह खाली है, तो ग्लोबल वेरिएबल चेक करो
-    if text == "" and _G.currentFullText then text = _G.currentFullText end
-    -- 3. अगर वह भी खाली है, तो सीधे एडिटर से उठा लो
-    if text == "" then
+    
+    -- 2. अगर एडिटर खाली है (रीडर मोड), तो पूरी स्क्रीन स्कैन करो!
+    if #biggestText:gsub("%s+", "") < 5 then
+        local function scanViews(v)
+            -- अगर इस व्यू में टेक्स्ट है, तो चेक करो कि क्या वह सबसे बड़ा है
+            pcall(function()
+                if v and v.getText then
+                    local t = tostring(v.getText())
+                    if #t > #biggestText then biggestText = t end
+                end
+            end)
+            -- अगर इसके अंदर और भी व्यूज़ हैं, तो उनके अंदर जाओ
+            pcall(function()
+                if v and v.getChildCount then
+                    for i = 0, v.getChildCount() - 1 do
+                        scanViews(v.getChildAt(i))
+                    end
+                end
+            end)
+        end
+        
         pcall(function()
-            if noteEditor and noteEditor.getText() then
-                text = noteEditor.getText().toString()
-            end
+            local rootView = patchActivity.getWindow().getDecorView()
+            scanViews(rootView)
         end)
     end
-    return text
+    
+    return biggestText
 end
 
 -- ==========================================
@@ -100,8 +119,12 @@ end
 -- 2. 🗺️ रीडर मोड स्ट्रक्चर जम्पर (Paragraph Finder)
 -- ==========================================
 local function openStructureJumperReader()
-    local text = getVisibleText() -- 🔥 यहाँ नया फिक्स लगा दिया है
-    if #text:gsub("%s+", "") == 0 then Toast.makeText(patchActivity, "टेक्स्ट खाली है!", 0).show() return end
+    local text = getVisibleText() -- 🔥 नया 'स्कैनर' यहाँ काम करेगा
+    
+    if #text:gsub("%s+", "") == 0 then 
+        Toast.makeText(patchActivity, "स्क्रीन पर कोई टेक्स्ट नहीं मिला!", 0).show() 
+        return 
+    end
     
     local lines = {}
     local positions = {}
@@ -117,7 +140,10 @@ local function openStructureJumperReader()
         currentPos = currentPos + #line + 1
     end
     
-    if #lines == 0 then Toast.makeText(patchActivity, "कोई पैराग्राफ नहीं मिला!", 0).show() return end
+    if #lines == 0 then 
+        Toast.makeText(patchActivity, "कोई पैराग्राफ नहीं मिला!", 0).show() 
+        return 
+    end
     
     local lv = ListView(patchActivity)
     lv.setAdapter(ArrayAdapter(patchActivity, android.R.layout.simple_list_item_1, lines))
@@ -127,19 +153,18 @@ local function openStructureJumperReader()
     lv.setOnItemClickListener(AdapterView.OnItemClickListener{
         onItemClick = function(parent, view, position, id)
             dlg.dismiss()
-            if scrollFullText and scrollFullText.getVisibility() == 0 then
-                readerBody.requestFocus()
-                readerBody.setSelection(positions[position + 1])
-                Toast.makeText(patchActivity, "लाइन चुनी गई!", 0).show()
-            elseif paraList and paraList.getVisibility() == 0 then
-                paraList.setSelection(position)
-                Toast.makeText(patchActivity, "पैराग्राफ सेट हो गया!", 0).show()
-            end
+            pcall(function()
+                if readerBody then
+                    readerBody.requestFocus()
+                    readerBody.setSelection(positions[position + 1])
+                end
+            end)
+            Toast.makeText(patchActivity, "लाइन " .. (position + 1) .. " चुनी गई!", 0).show()
         end
     })
 end
 
--- 🔥 THE FIX: 'Find' बटन पर Long-Press जम्पर सेट कर दिया 🔥
+-- 🔥 'Find' बटन पर Long-Press जम्पर सेट
 pcall(function()
     if btnReaderSearch then
         btnReaderSearch.setOnLongClickListener(View.OnLongClickListener{
@@ -159,10 +184,10 @@ pcall(function()
         btnReaderCopy.setOnClickListener(nil)
         btnReaderCopy.setOnClickListener(View.OnClickListener{
             onClick = function()
-                local textToCopy = getVisibleText() -- 🔥 यहाँ भी फिक्स लगा दिया है
+                local textToCopy = getVisibleText() -- 🔥 नया 'स्कैनर' यहाँ भी काम करेगा
                 
                 if #textToCopy:gsub("%s+", "") == 0 then
-                    Toast.makeText(patchActivity, "कॉपी करने के लिए कुछ नहीं है!", 0).show()
+                    Toast.makeText(patchActivity, "कॉपी करने के लिए कुछ नहीं मिला!", 0).show()
                     return
                 end
                 
@@ -192,10 +217,14 @@ end)
 -- 4. 🧰 स्मार्ट टूल्स का ओवरराइड (सब कुछ एक जगह)
 -- ==========================================
 local function cleanTextSmartly()
-    local text = noteEditor.getText().toString()
-    local cleanText = text:gsub(" +", " "):gsub("\n%s*\n+", "\n\n")
-    noteEditor.setText(cleanText)
-    Toast.makeText(patchActivity, "✨ टेक्स्ट एकदम साफ कर दिया गया!", 0).show()
+    local text = getVisibleText()
+    if noteEditor and noteEditor.getVisibility() == 0 then
+        local cleanText = text:gsub(" +", " "):gsub("\n%s*\n+", "\n\n")
+        noteEditor.setText(cleanText)
+        Toast.makeText(patchActivity, "✨ टेक्स्ट एकदम साफ कर दिया गया!", 0).show()
+    else
+        Toast.makeText(patchActivity, "पहले एडिटर (Editor) खोलें!", 0).show()
+    end
 end
 
 local function toggleCurtain()
@@ -229,7 +258,7 @@ local function toggleVolumeNav()
     if _G.volNavEnabled then
         if not _G.old_onKeyDown then _G.old_onKeyDown = onKeyDown end
         _G.onKeyDown = function(code, event)
-            if _G.volNavEnabled and noteEditor.isFocused() then
+            if _G.volNavEnabled and noteEditor and noteEditor.isFocused() then
                 if code == 24 then -- Vol UP
                     local layout = noteEditor.getLayout()
                     if layout then
@@ -294,4 +323,4 @@ _G.openSmartTextCleaner = function()
     })
 end
 
-Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Text Sync Fixed)", 1).show()
+Toast.makeText(patchActivity, "✨ Pro UX Patch Loaded! (Scanner ON)", 1).show()
