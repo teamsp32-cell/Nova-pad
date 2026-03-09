@@ -1,9 +1,9 @@
--- 🚨 NOVA PAD - THE NIL FIX MASTER ROUTER 🚨
+-- 🚀 NOVA PAD - THE SILENT MASTER ROUTER 🚀
 
 pcall(function()
     local patchActivity = activity
     
-    -- 🕵️‍♂️ Android सिस्टम से सीधा वर्ज़न निकालने का असली तरीका
+    -- Android सिस्टम से सीधा वर्ज़न निकालने का असली तरीका
     local vName = "nil"
     pcall(function()
         local pm = patchActivity.getPackageManager()
@@ -16,13 +16,10 @@ pcall(function()
         vName = tostring(APP_VERSION_NAME)
     end
 
-    -- सायरन!
-    Toast.makeText(patchActivity, "🌐 Master Active! Version: " .. vName, 1).show()
-
     local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
     local devFile = rootDirPatch .. "developer_mode.txt"
 
-    -- 🛑 2.9 DISCONTINUED (अगर वर्ज़न में 2.9 लिखा है)
+    -- 🛑 2.9 DISCONTINUED (अगर वर्ज़न 2.9 है)
     if string.find(vName, "2.9") then
         AlertDialog.Builder(patchActivity)
         .setTitle("⚠️ Update Required")
@@ -31,9 +28,8 @@ pcall(function()
         .setCancelable(false)
         .show()
 
-    -- ✅ 3.0 ACTIVE (अगर वर्ज़न 3.0 है, या 'nil' है, तो भी यही चलेगा!)
+    -- ✅ 3.0 ACTIVE (साइलेंट मोड)
     else
-        
         -- 🌟 सीक्रेट बीटा स्विच 
         local mySecretBetaCode = "Mayank@123"
         if _G.topTitle then
@@ -79,22 +75,18 @@ pcall(function()
             "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tools.lua"
         }
 
+        -- (बीटा यूज़र्स को एक छोटा सा हिंट मिलेगा कि वो बीटा में हैं, नॉर्मल यूज़र्स के लिए पूरी शांति)
         if isBetaUser then
             Toast.makeText(patchActivity, "🛠️ Beta Mode Active", 0).show()
         end
 
-        -- 🚀 बुलेटप्रूफ पैच रनर (क्रैश प्रूफ इंजन)
+        -- 🚀 बुलेटप्रूफ साइलेंट पैच रनर
         for i, url in ipairs(patchList) do
             Http.get(url, function(code, content)
                 if code == 200 and content and #content > 5 then
                     local func, err = load(content)
                     if func then
-                        local ok, runErr = pcall(func)
-                        if not ok and isBetaUser then
-                            Toast.makeText(patchActivity, "Run Error: " .. tostring(runErr), 1).show()
-                        end
-                    elseif isBetaUser then
-                        Toast.makeText(patchActivity, "Syntax Error in: " .. url, 1).show()
+                        pcall(func) -- एकदम शांति से रन करेगा, बिना किसी क्रैश या एरर बॉक्स के
                     end
                 end
             end)
