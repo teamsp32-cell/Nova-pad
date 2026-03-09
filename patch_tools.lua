@@ -1,5 +1,5 @@
 -- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
--- Features: Find/Replace, Clipboard, Curtain (Silent Load + Crash Catcher)
+-- Features: Find/Replace, Clipboard, Curtain (Silent Load + Crash Catcher + Smart Text Tools)
 
 -- 🚨 मेन क्रैश कैचर (जाल) 🚨
 local ok, err = pcall(function()
@@ -20,7 +20,7 @@ local ok, err = pcall(function()
     _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
     _G.curtainView = _G.curtainView or nil
 
-    -- 🌍 लैंग्वेज डिक्शनरी (वॉल्यूम वाला हटा दिया गया है)
+    -- 🌍 लैंग्वेज डिक्शनरी 
     local langData = {
         hi = {
             empty = "[खाली]", slot_empty = "यह स्लॉट खाली है!", clip_title = "📋 क्लिपबोर्ड मैनेजर",
@@ -78,7 +78,6 @@ local ok, err = pcall(function()
                 end
             })
         end)
-        -- अगर इस फीचर में क्रैश हुआ तो यहाँ पकड़ा जाएगा:
         if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in smartCopy").setMessage(tostring(opErr)).show() end
     end
 
@@ -182,33 +181,51 @@ local ok, err = pcall(function()
     end
 
     -- =======================================================
-    -- 🛠️ 4. TOOLBOX UI BINDING
+    -- 🛠️ 4. TOOLBOX (SMART TEXT TOOLS) UI BINDING 
     -- =======================================================
-    if btnTools then
-        btnTools.onClick = function()
-            local opOk, opErr = pcall(function()
-                local opts = {"📋 Clipboard Manager", "🔄 Find & Replace", "🥷 Privacy Curtain"}
-                local lv = ListView(publicActivity)
-                lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
-                local dlg = AlertDialog.Builder(publicActivity).setTitle("🧰 Toolbox").setView(lv).show()
-                
-                lv.setOnItemClickListener(AdapterView.OnItemClickListener{
-                    onItemClick = function(p,v,pos,id)
-                        dlg.dismiss()
-                        if pos == 0 then _G.openClipboardManager()
-                        elseif pos == 1 then _G.showFindReplace()
-                        elseif pos == 2 then _G.togglePrivacyCurtain()
-                        end
+    pcall(function()
+        -- यह कोड 'Smart Text Tools' के सभी संभावित (बिना स्पेस वाले) IDs को ढूँढेगा
+        local mySmartBtn = SmartTextTools or smartTextTools or smart_text_tools or btnSmartTextTools or btn_smart_text_tools or btnTools or btnSmartTool or smartTool
+        
+        if mySmartBtn then
+            -- 🌟 बटन मिल गया! अब इसमें तीनों जादुई फीचर्स जोड़ देते हैं:
+            mySmartBtn.setOnClickListener(View.OnClickListener{
+                onClick = function()
+                    local opOk, opErr = pcall(function()
+                        -- तुम्हारे खोए हुए फीचर्स की लिस्ट!
+                        local opts = {"📋 Clipboard Manager", "🔄 Find & Replace", "🥷 Privacy Curtain"}
+                        local lv = ListView(publicActivity)
+                        lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
+                        local dlg = AlertDialog.Builder(publicActivity).setTitle("🧰 Smart Text Tools").setView(lv).show()
+                        
+                        lv.setOnItemClickListener(AdapterView.OnItemClickListener{
+                            onItemClick = function(p,v,pos,id)
+                                dlg.dismiss()
+                                if pos == 0 then _G.openClipboardManager()
+                                elseif pos == 1 then _G.showFindReplace()
+                                elseif pos == 2 then _G.togglePrivacyCurtain()
+                                end
+                            end
+                        })
+                    end)
+                    if not opOk then 
+                        AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in Smart Text Tools").setMessage(tostring(opErr)).show() 
                     end
-                })
-            end)
-            if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in btnTools").setMessage(tostring(opErr)).show() end
+                end
+            })
+        else
+            -- 🚨 अगर अभी भी लेआउट का ID मैच नहीं हुआ, तो यह तुम्हें बता देगा!
+            AlertDialog.Builder(publicActivity)
+            .setTitle("⚠️ Button ID Mismatch!")
+            .setMessage("आपने नाम 'Smart Text Tools' बताया, लेकिन UI Layout के 'id' में स्पेस नहीं होता।\n\nकृपया अपने ऐप के लेआउट (UI) कोड में चेक करें कि इस बटन का 'id=...' क्या लिखा है (जैसे: smart_text_tools या Smart_Tools) और मुझे वही exact स्पेलिंग बताएं!")
+            .setPositiveButton("OK", nil)
+            .show()
         end
-    end
+    end)
 
 end)
 
--- 🚨 MAIN SCRIPT CRASH CATCHER (लोडिंग के टाइम अगर क्रैश हुआ तो) 🚨
+-- 🚨 MAIN SCRIPT CRASH CATCHER 🚨
 if not ok then
     local act = activity or _G.activity
     if act then
