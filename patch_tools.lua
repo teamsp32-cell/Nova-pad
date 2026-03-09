@@ -1,7 +1,6 @@
 -- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
--- Features: Find/Replace, Clipboard, Curtain (Silent Load + Crash Catcher + Smart Text Tools)
+-- Features: Find/Replace, Clipboard, Curtain (Silent Load + SUPER RADAR)
 
--- 🚨 मेन क्रैश कैचर (जाल) 🚨
 local ok, err = pcall(function()
     require "import"
     import "android.view.*"
@@ -20,7 +19,7 @@ local ok, err = pcall(function()
     _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
     _G.curtainView = _G.curtainView or nil
 
-    -- 🌍 लैंग्वेज डिक्शनरी 
+    -- 🌍 लैंग्वेज डिक्शनरी
     local langData = {
         hi = {
             empty = "[खाली]", slot_empty = "यह स्लॉट खाली है!", clip_title = "📋 क्लिपबोर्ड मैनेजर",
@@ -57,12 +56,9 @@ local ok, err = pcall(function()
         return lang
     end
     _G.appLanguage = getPatchLang()
-    
-    local function L(key)
-        return langData[_G.appLanguage][key] or langData["en"][key] or key
-    end
+    local function L(key) return langData[_G.appLanguage][key] or langData["en"][key] or key end
 
-    -- 📋 1. SMART CLIPBOARD MANAGER
+    -- 📋 1. SMART CLIPBOARD
     _G.smartCopy = function(txt)
         local opOk, opErr = pcall(function()
             if not txt or #txt == 0 then Toast.makeText(publicActivity, L("nothing_copy"), 0).show(); return end
@@ -89,23 +85,19 @@ local ok, err = pcall(function()
                 if string.len(_G.betaClipboard[i]) > 30 then preview = preview .. "..." end
                 table.insert(items, L("slot").." "..i..": " .. preview) 
             end
-            
             local lv = ListView(publicActivity)
             lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, items))
             local dlg = AlertDialog.Builder(publicActivity).setTitle(L("clip_title")).setView(lv).show()
-            
             lv.setOnItemClickListener(AdapterView.OnItemClickListener{
                 onItemClick = function(p,v,pos,id)
                     dlg.dismiss()
                     if _G.betaClipboard[pos+1] == "[Empty]" or _G.betaClipboard[pos+1] == "[खाली]" then
                         Toast.makeText(publicActivity, L("slot_empty"), 0).show(); return
                     end
-                    
                     local opts = {L("paste"), L("share"), L("clear")}
                     local lvOpts = ListView(publicActivity)
                     lvOpts.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
                     local dlgOpts = AlertDialog.Builder(publicActivity).setTitle(L("slot").." "..(pos+1)).setView(lvOpts).show()
-                    
                     lvOpts.setOnItemClickListener(AdapterView.OnItemClickListener{
                         onItemClick = function(p2,v2,pos2,id2)
                             dlgOpts.dismiss()
@@ -129,17 +121,15 @@ local ok, err = pcall(function()
         if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in openClipboardManager").setMessage(tostring(opErr)).show() end
     end
 
-    -- 🔄 2. FIND & REPLACE OVERRIDE
+    -- 🔄 2. FIND & REPLACE
     _G.showFindReplace = function()
         local opOk, opErr = pcall(function()
             local l = LinearLayout(publicActivity); l.setOrientation(1); l.setPadding(50,20,50,20)
             local f = EditText(publicActivity); f.setHint(L("find_hint"))
             local r = EditText(publicActivity); r.setHint(L("replace_hint"))
             l.addView(f); l.addView(r)
-            
             AlertDialog.Builder(publicActivity)
-            .setTitle(L("fnr_title"))
-            .setView(l)
+            .setTitle(L("fnr_title")).setView(l)
             .setPositiveButton(L("replace_all"), function()
                 local ft = f.getText().toString()
                 local rt = r.getText().toString()
@@ -181,18 +171,54 @@ local ok, err = pcall(function()
     end
 
     -- =======================================================
-    -- 🛠️ 4. TOOLBOX (SMART TEXT TOOLS) UI BINDING 
+    -- 🤖 4. THE SUPER RADAR (Auto-Finder)
     -- =======================================================
     pcall(function()
-        -- यह कोड 'Smart Text Tools' के सभी संभावित (बिना स्पेस वाले) IDs को ढूँढेगा
-        local mySmartBtn = SmartTextTools or smartTextTools or smart_text_tools or btnSmartTextTools or btn_smart_text_tools or btnTools or btnSmartTool or smartTool
+        -- यह फंक्शन स्क्रीन के हर हिस्से को स्कैन करेगा
+        local function scanForSmartTool(view)
+            local ok, count = pcall(function() return view.getChildCount() end)
+            if ok and count then
+                for i = 0, count - 1 do
+                    local child = view.getChildAt(i)
+                    
+                    -- टॉकबैक जो पढ़ता है (ContentDescription) चेक करो
+                    local okDesc, desc = pcall(function() return tostring(child.getContentDescription() or ""):lower() end)
+                    if okDesc and desc ~= "" then
+                        if desc:find("टूल बॉक्स") or desc:find("smart text tool") or desc:find("toolbox") then
+                            return child
+                        end
+                    end
+                    
+                    -- बटन पर जो लिखा है (Text) वो चेक करो
+                    local okTxt, txt = pcall(function() return tostring(child.getText() or ""):lower() end)
+                    if okTxt and txt ~= "" then
+                        if txt:find("टूल बॉक्स") or txt:find("smart text tool") or txt:find("toolbox") then
+                            return child
+                        end
+                    end
+                    
+                    -- अंदर के फोल्डर्स (Views) में जाओ
+                    local found = scanForSmartTool(child)
+                    if found then return found end
+                end
+            end
+            return nil
+        end
+
+        -- पूरे स्क्रीन के रूट व्यू से स्कैनिंग शुरू करो
+        local rootView = publicActivity.getWindow().getDecorView()
+        local mySmartBtn = scanForSmartTool(rootView)
         
+        -- अगर राडार को कुछ नहीं मिला, तो पुराने नाम भी चेक कर लो
+        if not mySmartBtn then
+            mySmartBtn = SmartTextTools or smartTextTools or smart_text_tools or btnSmartTextTools or toolbox or tool_box or btnToolbox
+        end
+
         if mySmartBtn then
-            -- 🌟 बटन मिल गया! अब इसमें तीनों जादुई फीचर्स जोड़ देते हैं:
+            -- 🌟 राडार ने बटन पकड़ लिया! अब क्लिक लगा दो 🌟
             mySmartBtn.setOnClickListener(View.OnClickListener{
                 onClick = function()
                     local opOk, opErr = pcall(function()
-                        -- तुम्हारे खोए हुए फीचर्स की लिस्ट!
                         local opts = {"📋 Clipboard Manager", "🔄 Find & Replace", "🥷 Privacy Curtain"}
                         local lv = ListView(publicActivity)
                         lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
@@ -208,16 +234,14 @@ local ok, err = pcall(function()
                             end
                         })
                     end)
-                    if not opOk then 
-                        AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in Smart Text Tools").setMessage(tostring(opErr)).show() 
-                    end
+                    if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash").setMessage(tostring(opErr)).show() end
                 end
             })
         else
-            -- 🚨 अगर अभी भी लेआउट का ID मैच नहीं हुआ, तो यह तुम्हें बता देगा!
+            -- 🚨 अगर सुपर राडार भी फेल हो जाए!
             AlertDialog.Builder(publicActivity)
-            .setTitle("⚠️ Button ID Mismatch!")
-            .setMessage("आपने नाम 'Smart Text Tools' बताया, लेकिन UI Layout के 'id' में स्पेस नहीं होता।\n\nकृपया अपने ऐप के लेआउट (UI) कोड में चेक करें कि इस बटन का 'id=...' क्या लिखा है (जैसे: smart_text_tools या Smart_Tools) और मुझे वही exact स्पेलिंग बताएं!")
+            .setTitle("⚠️ Ultimate Radar Failed!")
+            .setMessage("राडार को 'टूल बॉक्स' नाम की कोई चीज़ स्क्रीन पर नहीं मिली।\n\nप्लीज़ एक बार अपना Source Code (layout) खोलकर देखो कि उसका असली id क्या है!")
             .setPositiveButton("OK", nil)
             .show()
         end
@@ -225,15 +249,10 @@ local ok, err = pcall(function()
 
 end)
 
--- 🚨 MAIN SCRIPT CRASH CATCHER 🚨
 if not ok then
     local act = activity or _G.activity
     if act then
         local AlertDialog = luajava.bindClass("android.app.AlertDialog")
-        AlertDialog.Builder(act)
-        .setTitle("🚨 Tools Patch Load Crash!")
-        .setMessage("Error Details:\n" .. tostring(err))
-        .setPositiveButton("OK", nil)
-        .show()
+        AlertDialog.Builder(act).setTitle("🚨 Patch Load Crash!").setMessage(tostring(err)).show()
     end
 end
