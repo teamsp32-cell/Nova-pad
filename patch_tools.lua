@@ -1,6 +1,8 @@
 -- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
+-- Features: Find/Replace, Clipboard, Curtain (Silent Load + Crash Catcher)
 
-pcall(function()
+-- 🚨 मेन क्रैश कैचर (जाल) 🚨
+local ok, err = pcall(function()
     require "import"
     import "android.view.*"
     import "android.widget.*"
@@ -13,16 +15,12 @@ pcall(function()
 
     local publicActivity = activity
 
-    -- 🚨 तुम्हारा जाल (सायरन): स्क्रीन पर बताएगा कि टूल्स पैच लोड हुआ!
-    Toast.makeText(publicActivity, "🚨 Tools Patch Loaded & Active!", 1).show()
-
     -- ⚙️ ग्लोबल सेटिंग्स
     _G.betaClipboard = _G.betaClipboard or {"[Empty]", "[Empty]", "[Empty]"}
     _G.smartClipboardEnabled = _G.smartClipboardEnabled or false
-    _G.volNavEnabled = _G.volNavEnabled or false
     _G.curtainView = _G.curtainView or nil
 
-    -- 🌍 लैंग्वेज डिक्शनरी 
+    -- 🌍 लैंग्वेज डिक्शनरी (वॉल्यूम वाला हटा दिया गया है)
     local langData = {
         hi = {
             empty = "[खाली]", slot_empty = "यह स्लॉट खाली है!", clip_title = "📋 क्लिपबोर्ड मैनेजर",
@@ -33,8 +31,7 @@ pcall(function()
             success_fnr = "✨ कमाल! शब्द बदल दिए गए!", fail_fnr = "❌ यह शब्द फाइल में नहीं मिला!",
             copied = "कॉपी हो गया!", nothing_copy = "कॉपी करने के लिए कुछ नहीं मिला!",
             where_copy = "कहाँ कॉपी करें?", save_slot = "में सेव करें",
-            curtain_on = "🥷 प्राइवेसी कर्टेन चालू!", curtain_off = "कर्टेन हट गया",
-            vol_on = "🔊 वॉल्यूम कर्सर चालू!", vol_off = "🔊 वॉल्यूम कर्सर बंद!"
+            curtain_on = "🥷 प्राइवेसी कर्टेन चालू!", curtain_off = "कर्टेन हट गया"
         },
         en = {
             empty = "[Empty]", slot_empty = "This slot is empty!", clip_title = "📋 Clipboard Manager",
@@ -45,8 +42,7 @@ pcall(function()
             success_fnr = "✨ Awesome! Words replaced!", fail_fnr = "❌ Word not found in file!",
             copied = "Copied!", nothing_copy = "Nothing found to copy!",
             where_copy = "Where to copy?", save_slot = "Save to",
-            curtain_on = "🥷 Privacy Curtain ON!", curtain_off = "Curtain removed",
-            vol_on = "🔊 Volume Cursor ON!", vol_off = "🔊 Volume Cursor OFF!"
+            curtain_on = "🥷 Privacy Curtain ON!", curtain_off = "Curtain removed"
         }
     }
 
@@ -68,68 +64,75 @@ pcall(function()
 
     -- 📋 1. SMART CLIPBOARD MANAGER
     _G.smartCopy = function(txt)
-        if not txt or #txt == 0 then Toast.makeText(publicActivity, L("nothing_copy"), 0).show(); return end
-        local opts = {L("slot").." 1", L("slot").." 2", L("slot").." 3"}
-        local lv = ListView(publicActivity)
-        lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
-        local dlg = AlertDialog.Builder(publicActivity).setTitle(L("where_copy")).setView(lv).show()
-        lv.setOnItemClickListener(AdapterView.OnItemClickListener{
-            onItemClick = function(p,v,pos,id)
-                dlg.dismiss()
-                _G.betaClipboard[pos+1] = txt
-                Toast.makeText(publicActivity, L("copied").." ("..L("slot").." "..(pos+1)..")", 0).show()
-            end
-        })
+        local opOk, opErr = pcall(function()
+            if not txt or #txt == 0 then Toast.makeText(publicActivity, L("nothing_copy"), 0).show(); return end
+            local opts = {L("slot").." 1", L("slot").." 2", L("slot").." 3"}
+            local lv = ListView(publicActivity)
+            lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
+            local dlg = AlertDialog.Builder(publicActivity).setTitle(L("where_copy")).setView(lv).show()
+            lv.setOnItemClickListener(AdapterView.OnItemClickListener{
+                onItemClick = function(p,v,pos,id)
+                    dlg.dismiss()
+                    _G.betaClipboard[pos+1] = txt
+                    Toast.makeText(publicActivity, L("copied").." ("..L("slot").." "..(pos+1)..")", 0).show()
+                end
+            })
+        end)
+        -- अगर इस फीचर में क्रैश हुआ तो यहाँ पकड़ा जाएगा:
+        if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in smartCopy").setMessage(tostring(opErr)).show() end
     end
 
     _G.openClipboardManager = function()
-        local items = {}
-        for i=1,3 do 
-            local preview = string.sub(_G.betaClipboard[i], 1, 30)
-            if string.len(_G.betaClipboard[i]) > 30 then preview = preview .. "..." end
-            table.insert(items, L("slot").." "..i..": " .. preview) 
-        end
-        
-        local lv = ListView(publicActivity)
-        lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, items))
-        local dlg = AlertDialog.Builder(publicActivity).setTitle(L("clip_title")).setView(lv).show()
-        
-        lv.setOnItemClickListener(AdapterView.OnItemClickListener{
-            onItemClick = function(p,v,pos,id)
-                dlg.dismiss()
-                if _G.betaClipboard[pos+1] == "[Empty]" or _G.betaClipboard[pos+1] == "[खाली]" then
-                    Toast.makeText(publicActivity, L("slot_empty"), 0).show(); return
-                end
-                
-                local opts = {L("paste"), L("share"), L("clear")}
-                local lvOpts = ListView(publicActivity)
-                lvOpts.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
-                local dlgOpts = AlertDialog.Builder(publicActivity).setTitle(L("slot").." "..(pos+1)).setView(lvOpts).show()
-                
-                lvOpts.setOnItemClickListener(AdapterView.OnItemClickListener{
-                    onItemClick = function(p2,v2,pos2,id2)
-                        dlgOpts.dismiss()
-                        if pos2 == 0 then
-                            if noteEditor and noteEditor.getVisibility() == 0 then
-                                noteEditor.getText().insert(noteEditor.getSelectionStart(), _G.betaClipboard[pos+1])
-                                Toast.makeText(publicActivity, L("pasted"), 0).show()
-                            else Toast.makeText(publicActivity, L("open_editor"), 0).show() end
-                        elseif pos2 == 1 then
-                            local i = Intent(Intent.ACTION_SEND); i.setType("text/plain"); i.putExtra(Intent.EXTRA_TEXT, _G.betaClipboard[pos+1])
-                            publicActivity.startActivity(Intent.createChooser(i, L("share")))
-                        elseif pos2 == 2 then
-                            _G.betaClipboard[pos+1] = L("empty")
-                            Toast.makeText(publicActivity, L("cleared"), 0).show()
-                        end
-                    end
-                })
+        local opOk, opErr = pcall(function()
+            local items = {}
+            for i=1,3 do 
+                local preview = string.sub(_G.betaClipboard[i], 1, 30)
+                if string.len(_G.betaClipboard[i]) > 30 then preview = preview .. "..." end
+                table.insert(items, L("slot").." "..i..": " .. preview) 
             end
-        })
+            
+            local lv = ListView(publicActivity)
+            lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, items))
+            local dlg = AlertDialog.Builder(publicActivity).setTitle(L("clip_title")).setView(lv).show()
+            
+            lv.setOnItemClickListener(AdapterView.OnItemClickListener{
+                onItemClick = function(p,v,pos,id)
+                    dlg.dismiss()
+                    if _G.betaClipboard[pos+1] == "[Empty]" or _G.betaClipboard[pos+1] == "[खाली]" then
+                        Toast.makeText(publicActivity, L("slot_empty"), 0).show(); return
+                    end
+                    
+                    local opts = {L("paste"), L("share"), L("clear")}
+                    local lvOpts = ListView(publicActivity)
+                    lvOpts.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
+                    local dlgOpts = AlertDialog.Builder(publicActivity).setTitle(L("slot").." "..(pos+1)).setView(lvOpts).show()
+                    
+                    lvOpts.setOnItemClickListener(AdapterView.OnItemClickListener{
+                        onItemClick = function(p2,v2,pos2,id2)
+                            dlgOpts.dismiss()
+                            if pos2 == 0 then
+                                if noteEditor and noteEditor.getVisibility() == 0 then
+                                    noteEditor.getText().insert(noteEditor.getSelectionStart(), _G.betaClipboard[pos+1])
+                                    Toast.makeText(publicActivity, L("pasted"), 0).show()
+                                else Toast.makeText(publicActivity, L("open_editor"), 0).show() end
+                            elseif pos2 == 1 then
+                                local i = Intent(Intent.ACTION_SEND); i.setType("text/plain"); i.putExtra(Intent.EXTRA_TEXT, _G.betaClipboard[pos+1])
+                                publicActivity.startActivity(Intent.createChooser(i, L("share")))
+                            elseif pos2 == 2 then
+                                _G.betaClipboard[pos+1] = L("empty")
+                                Toast.makeText(publicActivity, L("cleared"), 0).show()
+                            end
+                        end
+                    })
+                end
+            })
+        end)
+        if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in openClipboardManager").setMessage(tostring(opErr)).show() end
     end
 
     -- 🔄 2. FIND & REPLACE OVERRIDE
     _G.showFindReplace = function()
-        pcall(function()
+        local opOk, opErr = pcall(function()
             local l = LinearLayout(publicActivity); l.setOrientation(1); l.setPadding(50,20,50,20)
             local f = EditText(publicActivity); f.setHint(L("find_hint"))
             local r = EditText(publicActivity); r.setHint(L("replace_hint"))
@@ -153,11 +156,12 @@ pcall(function()
                 else Toast.makeText(publicActivity, L("req_find"), 0).show() end
             end).show()
         end)
+        if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in showFindReplace").setMessage(tostring(opErr)).show() end
     end
 
     -- 🥷 3. PRIVACY CURTAIN
     _G.togglePrivacyCurtain = function()
-        pcall(function()
+        local opOk, opErr = pcall(function()
             local wm = publicActivity.getSystemService(Context.WINDOW_SERVICE)
             if _G.curtainView then
                 wm.removeView(_G.curtainView)
@@ -174,6 +178,45 @@ pcall(function()
                 })
             end
         end)
+        if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in togglePrivacyCurtain").setMessage(tostring(opErr)).show() end
+    end
+
+    -- =======================================================
+    -- 🛠️ 4. TOOLBOX UI BINDING
+    -- =======================================================
+    if btnTools then
+        btnTools.onClick = function()
+            local opOk, opErr = pcall(function()
+                local opts = {"📋 Clipboard Manager", "🔄 Find & Replace", "🥷 Privacy Curtain"}
+                local lv = ListView(publicActivity)
+                lv.setAdapter(ArrayAdapter(publicActivity, android.R.layout.simple_list_item_1, opts))
+                local dlg = AlertDialog.Builder(publicActivity).setTitle("🧰 Toolbox").setView(lv).show()
+                
+                lv.setOnItemClickListener(AdapterView.OnItemClickListener{
+                    onItemClick = function(p,v,pos,id)
+                        dlg.dismiss()
+                        if pos == 0 then _G.openClipboardManager()
+                        elseif pos == 1 then _G.showFindReplace()
+                        elseif pos == 2 then _G.togglePrivacyCurtain()
+                        end
+                    end
+                })
+            end)
+            if not opOk then AlertDialog.Builder(publicActivity).setTitle("🚨 Crash in btnTools").setMessage(tostring(opErr)).show() end
+        end
     end
 
 end)
+
+-- 🚨 MAIN SCRIPT CRASH CATCHER (लोडिंग के टाइम अगर क्रैश हुआ तो) 🚨
+if not ok then
+    local act = activity or _G.activity
+    if act then
+        local AlertDialog = luajava.bindClass("android.app.AlertDialog")
+        AlertDialog.Builder(act)
+        .setTitle("🚨 Tools Patch Load Crash!")
+        .setMessage("Error Details:\n" .. tostring(err))
+        .setPositiveButton("OK", nil)
+        .show()
+    end
+end
