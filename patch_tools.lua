@@ -1,5 +1,5 @@
 -- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
--- Features: Clipboard, Find/Replace (Fixed Syntax), Curtain + Original Smart Tools
+-- Features: Clipboard, Find/Replace (PURE LUA 100% FIX), Curtain + Original Smart Tools
 
 local ok, err = pcall(function()
     require "import"
@@ -79,7 +79,7 @@ local ok, err = pcall(function()
         end)
     end
 
-    -- 🚨 BUG FIX: Bulletproof Find & Replace Engine (Colon Syntax Fix) 🚨
+    -- 🚨 PURE LUA BULLETPROOF REPLACE ENGINE 🚨
     _G.showFindReplace = function()
         pcall(function()
             local l = LinearLayout(publicActivity); l.setOrientation(1); l.setPadding(50,20,50,20)
@@ -93,15 +93,24 @@ local ok, err = pcall(function()
                     local rt = tostring(r.getText() or "")
                     
                     if #ft > 0 then 
-                        local JString = luajava.bindClass("java.lang.String")
-                        local jContent = JString.valueOf(tostring(noteEditor.getText() or ""))
-                        local jFt = JString.valueOf(ft)
-                        local jRt = JString.valueOf(rt)
+                        local content = tostring(noteEditor.getText() or "")
                         
-                        -- 🔥 यहाँ '.' (Dot) की जगह ':' (Colon) लगा दिया है! 🔥
-                        if jContent:contains(jFt) then
-                            local nc = jContent:replace(jFt, jRt):toString()
-                            noteEditor.setText(nc)
+                        -- 🔥 100% Native Lua Find (No Java Reflection Crash) 🔥
+                        -- 'true' का मतलब है कि यह सादा (Plain Text) सर्च करेगा, कोई पैटर्न/सिंबल से क्रैश नहीं होगा!
+                        if string.find(content, ft, 1, true) then
+                            local result = ""
+                            local startIdx = 1
+                            while true do
+                                local s, e = string.find(content, ft, startIdx, true)
+                                if not s then
+                                    result = result .. string.sub(content, startIdx)
+                                    break
+                                end
+                                result = result .. string.sub(content, startIdx, s - 1) .. rt
+                                startIdx = e + 1
+                            end
+                            
+                            noteEditor.setText(result)
                             
                             pcall(function() if toneGen then toneGen.startTone(24, 100) end end)
                             Toast.makeText(publicActivity, L("success_fnr"), 0).show()
@@ -163,6 +172,7 @@ local ok, err = pcall(function()
             local JString = luajava.bindClass("java.lang.String")
             local jText = JString.valueOf(text)
             
+            -- (यहाँ तुम्हारा ओरिजिनल जावा कोड रखा है जो बिल्कुल सही काम करता था)
             if w == 0 then
                 if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
                 local matcher = Pattern.compile("(?:\\+?\\d{1,3}[- ]?)?\\d{10}").matcher(jText); local nums = {}; while matcher.find() do table.insert(nums, matcher.group()) end
@@ -171,9 +181,9 @@ local ok, err = pcall(function()
                 if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
                 local matcher = Pattern.compile("https?://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,}(/\\S*)?").matcher(jText); local links = {}; while matcher.find() do table.insert(links, matcher.group()) end
                 if #links > 0 then activity.getSystemService(Context.CLIPBOARD_SERVICE).setPrimaryClip(ClipData.newPlainText("Links", table.concat(links, "\n"))); Toast.makeText(activity, #links.." Links Copied!", 0).show() else Toast.makeText(activity, "No links found.", 0).show() end
-            elseif w == 2 then noteEditor.setText(jText:replaceAll("[*#_~`|^]", ""):toString()); Toast.makeText(activity, "Symbols removed!", 0).show()
-            elseif w == 3 then noteEditor.setText(jText:replaceAll("[\\x{1F300}-\\x{1F6FF}|\\x{2600}-\\x{26FF}|\\x{2700}-\\x{27BF}|\\x{1F900}-\\x{1F9FF}|\\x{1F1E6}-\\x{1F1FF}]", ""):toString()); Toast.makeText(activity, "Emojis removed!", 0).show()
-            elseif w == 4 then local ft = jText:replaceAll(" +", " "); ft = ft:replaceAll("([.,])([A-Za-z\\u0900-\\u097F])", "$1 $2"); noteEditor.setText(ft:trim():toString()); Toast.makeText(activity, "Formatted beautifully!", 0).show() 
+            elseif w == 2 then noteEditor.setText(jText.replaceAll("[*#_~`|^]", "")); Toast.makeText(activity, "Symbols removed!", 0).show()
+            elseif w == 3 then noteEditor.setText(jText.replaceAll("[\\x{1F300}-\\x{1F6FF}|\\x{2600}-\\x{26FF}|\\x{2700}-\\x{27BF}|\\x{1F900}-\\x{1F9FF}|\\x{1F1E6}-\\x{1F1FF}]", "")); Toast.makeText(activity, "Emojis removed!", 0).show()
+            elseif w == 4 then local ft = jText.replaceAll(" +", " "); ft = ft.replaceAll("([.,])([A-Za-z\\u0900-\\u097F])", "$1 $2"); noteEditor.setText(ft.trim()); Toast.makeText(activity, "Formatted beautifully!", 0).show() 
             elseif w == 5 then 
                 if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
                 import "android.speech.tts.TextToSpeech"
@@ -205,5 +215,4 @@ local ok, err = pcall(function()
 
 end)
 
--- साइलेंट एरर कैचर (बैकग्राउंड के लिए)
 if not ok then print("Tools Patch Error: " .. tostring(err)) end
