@@ -1,4 +1,4 @@
--- 🔍 Nova Pad - Smart Find Patch (Crash Catcher Edition)
+-- 🔍 Nova Pad - Smart Find Patch (Auto-Scroll + Crash Catcher)
 
 pcall(function()
     local patchActivity = activity
@@ -48,11 +48,9 @@ pcall(function()
     local function getJavaIndices(str, startByte, endByte)
         local startChar, endChar, chars = 0, 0, 0
         local i, len = 1, string.len(str)
-        
         while i <= len do
             if i == startByte then startChar = chars end
             if i == endByte + 1 then endChar = chars; break end
-            
             local b = string.byte(str, i)
             if b >= 0 and b <= 127 then i = i + 1; chars = chars + 1
             elseif b >= 192 and b <= 223 then i = i + 2; chars = chars + 1
@@ -64,9 +62,32 @@ pcall(function()
         return startChar, endChar
     end
 
+    -- 🌟 THE MAGIC HIGHLIGHTER & SCROLLER 🌟
+    local function highlightAndScrollText(view, startC, endC)
+        pcall(function()
+            view.requestFocus()
+            
+            -- स्क्रोल करने का लॉजिक
+            if view.getLayout then
+                local line = view.getLayout().getLineForOffset(startC)
+                local y = view.getLayout().getLineTop(line)
+                view.scrollTo(0, y) -- सीधा उस लाइन पर स्क्रोल कर देगा!
+            end
+
+            if view.setSelection then
+                view.setSelection(startC, endC)
+            else
+                import "android.text.SpannableString"
+                import "android.text.style.BackgroundColorSpan"
+                local span = SpannableString(view.getText().toString())
+                span.setSpan(BackgroundColorSpan(0xFFFFFF00), startC, endC, 33) 
+                view.setText(span)
+            end
+        end)
+    end
+
     if btnReaderSearch then
         btnReaderSearch.setOnClickListener(nil)
-        
         btnReaderSearch.setOnClickListener(View.OnClickListener{
             onClick = function()
                 pcall(function()
@@ -81,7 +102,7 @@ pcall(function()
                     .setView(l)
                     .setPositiveButton(LP("Search", "खोजें"), function()
                         
-                        -- 🚨 यहाँ मैंने क्रैश डिटेक्टर लगाया है! 🚨
+                        -- 🚨 CRASH CATCHER (जाल) 🚨
                         local ok, err = pcall(function()
                             local rawQuery = tostring(findInput.getText() or "")
                             local queryWithEngNums = convertHindiDigits(rawQuery)
@@ -95,18 +116,22 @@ pcall(function()
                             if numText then
                                 reqNum = tonumber(numText)
                                 local lowerQ = safeLower(trimmedQuery)
-                                
-                                -- बिना Java के प्योर Lua स्ट्रिंग मैच (ताकि क्रैश न हो)
                                 if string.find(lowerQ, "para") or string.find(trimmedQuery, "पैरा") or string.find(trimmedQuery, "पेरा") or string.find(trimmedQuery, "अनुच्छेद") or string.find(lowerQ, "line") or string.find(trimmedQuery, "लाइन") or string.find(trimmedQuery, "पंक्ति") then
                                     isCommand = true
                                 end
                             end
 
+                            -- 🚀 COMMAND JUMP (Para 10)
                             if isCommand and reqNum > 0 then
                                 if _G.paraList and _G.paraList.getVisibility() == 0 then
                                     local adapter = _G.paraList.getAdapter()
                                     if adapter and reqNum <= adapter.getCount() then
+                                        
+                                        -- 🌟 ऑटो-स्क्रोल और सेलेक्ट लॉजिक 🌟
                                         _G.paraList.setSelection(reqNum - 1)
+                                        _G.paraList.smoothScrollToPosition(reqNum - 1)
+                                        _G.paraList.requestFocus()
+                                        
                                         local msg = LP("Paragraph " .. reqNum .. " selected", "पैराग्राफ " .. reqNum .. " चुना गया")
                                         Toast.makeText(patchActivity, msg, 0).show()
                                         pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
@@ -130,20 +155,21 @@ pcall(function()
                                         if not endByte then endByte = string.len(fullText) else endByte = endByte - 1 end
                                         
                                         local sChar, eChar = getJavaIndices(fullText, startByte, endByte)
-                                        _G.readerBody.requestFocus()
-                                        _G.readerBody.setSelection(sChar, eChar)
+                                        
+                                        -- 🌟 हाईलाइट + ऑटो स्क्रोल 🌟
+                                        highlightAndScrollText(_G.readerBody, sChar, eChar) 
+                                        
                                         local msg = LP("Line " .. reqNum .. " selected", "लाइन " .. reqNum .. " चुनी गई")
                                         Toast.makeText(patchActivity, msg, 0).show()
                                         pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
                                     else
                                         Toast.makeText(patchActivity, LP("Invalid Number!", "यह नंबर मौजूद नहीं है!"), 0).show()
                                     end
-                                else
-                                    Toast.makeText(patchActivity, "❌ UI Error: paraList/readerBody not found!", 1).show()
                                 end
                                 return 
                             end
 
+                            -- 🔍 NORMAL WORD SEARCH
                             local cleanQuery = smartClean(trimmedQuery)
                             local safeQ = safeLower(cleanQuery)
 
@@ -161,7 +187,11 @@ pcall(function()
                                 end
 
                                 if foundIndex ~= -1 then
-                                    _G.paraList.setSelection(foundIndex) 
+                                    -- 🌟 ऑटो-स्क्रोल और सेलेक्ट लॉजिक 🌟
+                                    _G.paraList.setSelection(foundIndex)
+                                    _G.paraList.smoothScrollToPosition(foundIndex)
+                                    _G.paraList.requestFocus()
+                                    
                                     local msg = LP("Found at paragraph " .. (foundIndex + 1), "मिल गया! पैराग्राफ " .. (foundIndex + 1) .. " चुना गया")
                                     Toast.makeText(patchActivity, msg, 0).show()
                                     pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
@@ -179,8 +209,10 @@ pcall(function()
                                 local startByte, endByte = string.find(safeFullText, safeQ, 1, true)
                                 if startByte and endByte then
                                     local startChar, endChar = getJavaIndices(cleanFullText, startByte, endByte)
-                                    _G.readerBody.requestFocus()
-                                    _G.readerBody.setSelection(startChar, endChar)
+                                    
+                                    -- 🌟 हाईलाइट + ऑटो स्क्रोल 🌟
+                                    highlightAndScrollText(_G.readerBody, startChar, endChar)
+                                    
                                     local msg = LP("Word found and selected", "शब्द मिल गया और चुन लिया गया")
                                     Toast.makeText(patchActivity, msg, 0).show()
                                     pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
@@ -191,8 +223,8 @@ pcall(function()
                                 end
                             end
                         end)
-                        
-                        -- 🚨 अगर क्रैश हुआ, तो यह बॉक्स खुल कर तुम्हें असली एरर बताएगा! 🚨
+
+                        -- 🚨 जाल का रिज़ल्ट: अगर क्रैश हुआ, तो यह बॉक्स खुल कर तुम्हें असली एरर बताएगा! 🚨
                         if not ok then
                             AlertDialog.Builder(patchActivity)
                             .setTitle("🚨 Silent Crash Caught!")
