@@ -1,11 +1,8 @@
--- 🔍 Nova Pad - Smart Find Patch (Crash-Proof)
+-- 🔍 Nova Pad - Smart Find Patch (Crash-Proof & Command Fixed)
 
 pcall(function()
     local patchActivity = activity
     local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
-
-    -- 🚨 तुम्हारा जाल (सायरन): स्क्रीन पर बताएगा कि फाइंड पैच लोड हुआ!
-    Toast.makeText(patchActivity, "🚨 Find Patch Loaded & Active!", 1).show()
 
     local function getPatchLang()
         local lang = "en"
@@ -27,7 +24,6 @@ pcall(function()
         return s
     end
 
-    -- 🌟 100% Crash-Proof Java Lowercase Engine 🌟
     local function safeLower(str)
         if not str or str == "" then return "" end
         local ok, res = pcall(function()
@@ -35,7 +31,7 @@ pcall(function()
             return JString.valueOf(tostring(str)):toLowerCase():toString()
         end)
         if ok and res then return res end
-        return string.lower(tostring(str)) -- Fallback
+        return string.lower(tostring(str)) 
     end
 
     local function smartClean(str)
@@ -92,18 +88,24 @@ pcall(function()
                             local trimmedQuery = string.gsub(queryWithEngNums, "^%s*(.-)%s*$", "%1")
                             if trimmedQuery == "" then return end
 
+                            -- 🔥 COMMAND DETECTOR (Java Bulletproof Engine) 🔥
                             local isCommand = false
                             local reqNum = 0
                             
                             local numText = string.match(trimmedQuery, "%d+")
                             if numText then
                                 reqNum = tonumber(numText)
-                                local safeQ = safeLower(trimmedQuery)
-                                if string.find(safeQ, "para") or string.find(safeQ, "पैरा") or string.find(safeQ, "पेरा") or string.find(safeQ, "अनुच्छेद") or string.find(safeQ, "line") or string.find(safeQ, "लाइन") or string.find(safeQ, "पंक्ति") then
+                                
+                                -- Lua की जगह Java का contains इस्तेमाल कर रहे हैं (हिंदी के लिए बेस्ट)
+                                local JString = luajava.bindClass("java.lang.String")
+                                local jSafeQ = JString.valueOf(trimmedQuery):toLowerCase()
+                                
+                                if jSafeQ:contains("para") or jSafeQ:contains("पैरा") or jSafeQ:contains("पेरा") or jSafeQ:contains("अनुच्छेद") or jSafeQ:contains("line") or jSafeQ:contains("लाइन") or jSafeQ:contains("पंक्ति") then
                                     isCommand = true
                                 end
                             end
 
+                            -- 🔥 JUMP TO COMMAND 🔥
                             if isCommand and reqNum > 0 then
                                 if paraList and paraList.getVisibility() == 0 then
                                     local adapter = paraList.getAdapter()
@@ -140,6 +142,9 @@ pcall(function()
                                     else
                                         Toast.makeText(patchActivity, LP("Invalid Number!", "यह नंबर मौजूद नहीं है!"), 0).show()
                                     end
+                                else
+                                    -- 🚨 अगर यह एरर आया, तो समझ जाना 3.0 में UI के ID बदल गए हैं!
+                                    Toast.makeText(patchActivity, "❌ Error: paraList या readerBody स्क्रीन पर नहीं मिला!", 1).show()
                                 end
                                 return 
                             end
