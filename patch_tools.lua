@@ -1,5 +1,5 @@
 -- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
--- Features: Clipboard, Find/Replace (FIXED), Curtain + Original Smart Tools
+-- Features: Clipboard, Find/Replace (Fixed Syntax), Curtain + Original Smart Tools
 
 local ok, err = pcall(function()
     require "import"
@@ -79,7 +79,7 @@ local ok, err = pcall(function()
         end)
     end
 
-    -- 🚨 BUG FIX: Bulletproof Find & Replace Engine 🚨
+    -- 🚨 BUG FIX: Bulletproof Find & Replace Engine (Colon Syntax Fix) 🚨
     _G.showFindReplace = function()
         pcall(function()
             local l = LinearLayout(publicActivity); l.setOrientation(1); l.setPadding(50,20,50,20)
@@ -88,21 +88,19 @@ local ok, err = pcall(function()
             
             AlertDialog.Builder(publicActivity).setTitle(L("fnr_title")).setView(l).setPositiveButton(L("replace_all"), function()
                 
-                -- 🚨 असली क्रैश कैचर बटन क्लिक के अंदर!
                 local btnOk, btnErr = pcall(function()
                     local ft = tostring(f.getText() or "")
                     local rt = tostring(r.getText() or "")
                     
                     if #ft > 0 then 
                         local JString = luajava.bindClass("java.lang.String")
-                        -- Lua String को Java String में बदलना (Hindi Text Fix)
                         local jContent = JString.valueOf(tostring(noteEditor.getText() or ""))
                         local jFt = JString.valueOf(ft)
                         local jRt = JString.valueOf(rt)
                         
-                        if jContent.contains(jFt) then
-                            -- सुरक्षित रिप्लेसमेंट और उसे वापस Lua स्ट्रिंग बनाना
-                            local nc = jContent.replace(jFt, jRt):toString()
+                        -- 🔥 यहाँ '.' (Dot) की जगह ':' (Colon) लगा दिया है! 🔥
+                        if jContent:contains(jFt) then
+                            local nc = jContent:replace(jFt, jRt):toString()
                             noteEditor.setText(nc)
                             
                             pcall(function() if toneGen then toneGen.startTone(24, 100) end end)
@@ -115,7 +113,6 @@ local ok, err = pcall(function()
                     end
                 end)
                 
-                -- अगर अब भी कोई एरर आया तो यह तुम्हें स्क्रीन पर बता देगा
                 if not btnOk then 
                     AlertDialog.Builder(publicActivity)
                     .setTitle("🚨 Replace Action Error")
@@ -174,9 +171,9 @@ local ok, err = pcall(function()
                 if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
                 local matcher = Pattern.compile("https?://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,}(/\\S*)?").matcher(jText); local links = {}; while matcher.find() do table.insert(links, matcher.group()) end
                 if #links > 0 then activity.getSystemService(Context.CLIPBOARD_SERVICE).setPrimaryClip(ClipData.newPlainText("Links", table.concat(links, "\n"))); Toast.makeText(activity, #links.." Links Copied!", 0).show() else Toast.makeText(activity, "No links found.", 0).show() end
-            elseif w == 2 then noteEditor.setText(jText.replaceAll("[*#_~`|^]", "")); Toast.makeText(activity, "Symbols removed!", 0).show()
-            elseif w == 3 then noteEditor.setText(jText.replaceAll("[\\x{1F300}-\\x{1F6FF}|\\x{2600}-\\x{26FF}|\\x{2700}-\\x{27BF}|\\x{1F900}-\\x{1F9FF}|\\x{1F1E6}-\\x{1F1FF}]", "")); Toast.makeText(activity, "Emojis removed!", 0).show()
-            elseif w == 4 then local ft = jText.replaceAll(" +", " "); ft = ft.replaceAll("([.,])([A-Za-z\\u0900-\\u097F])", "$1 $2"); noteEditor.setText(ft.trim()); Toast.makeText(activity, "Formatted beautifully!", 0).show() 
+            elseif w == 2 then noteEditor.setText(jText:replaceAll("[*#_~`|^]", ""):toString()); Toast.makeText(activity, "Symbols removed!", 0).show()
+            elseif w == 3 then noteEditor.setText(jText:replaceAll("[\\x{1F300}-\\x{1F6FF}|\\x{2600}-\\x{26FF}|\\x{2700}-\\x{27BF}|\\x{1F900}-\\x{1F9FF}|\\x{1F1E6}-\\x{1F1FF}]", ""):toString()); Toast.makeText(activity, "Emojis removed!", 0).show()
+            elseif w == 4 then local ft = jText:replaceAll(" +", " "); ft = ft:replaceAll("([.,])([A-Za-z\\u0900-\\u097F])", "$1 $2"); noteEditor.setText(ft:trim():toString()); Toast.makeText(activity, "Formatted beautifully!", 0).show() 
             elseif w == 5 then 
                 if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
                 import "android.speech.tts.TextToSpeech"
