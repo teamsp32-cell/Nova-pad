@@ -1,5 +1,5 @@
 -- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
--- Features: Clipboard, Find/Replace, Curtain + Original Smart Tools (Combined!)
+-- Features: Clipboard, Find/Replace (FIXED), Curtain + Original Smart Tools
 
 local ok, err = pcall(function()
     require "import"
@@ -79,20 +79,51 @@ local ok, err = pcall(function()
         end)
     end
 
+    -- 🚨 BUG FIX: Bulletproof Find & Replace Engine 🚨
     _G.showFindReplace = function()
         pcall(function()
             local l = LinearLayout(publicActivity); l.setOrientation(1); l.setPadding(50,20,50,20)
             local f = EditText(publicActivity); f.setHint(L("find_hint")); local r = EditText(publicActivity); r.setHint(L("replace_hint"))
             l.addView(f); l.addView(r)
+            
             AlertDialog.Builder(publicActivity).setTitle(L("fnr_title")).setView(l).setPositiveButton(L("replace_all"), function()
-                local ft = f.getText().toString(); local rt = r.getText().toString()
-                if #ft > 0 then 
-                    local JString = luajava.bindClass("java.lang.String"); local jContent = JString.valueOf(noteEditor.getText().toString())
-                    if jContent.contains(ft) then
-                        noteEditor.setText(jContent.replace(ft, rt)); pcall(function() if toneGen then toneGen.startTone(24, 100) end end)
-                        Toast.makeText(publicActivity, L("success_fnr"), 0).show()
-                    else Toast.makeText(publicActivity, L("fail_fnr"), 0).show() end
-                else Toast.makeText(publicActivity, L("req_find"), 0).show() end
+                
+                -- 🚨 असली क्रैश कैचर बटन क्लिक के अंदर!
+                local btnOk, btnErr = pcall(function()
+                    local ft = tostring(f.getText() or "")
+                    local rt = tostring(r.getText() or "")
+                    
+                    if #ft > 0 then 
+                        local JString = luajava.bindClass("java.lang.String")
+                        -- Lua String को Java String में बदलना (Hindi Text Fix)
+                        local jContent = JString.valueOf(tostring(noteEditor.getText() or ""))
+                        local jFt = JString.valueOf(ft)
+                        local jRt = JString.valueOf(rt)
+                        
+                        if jContent.contains(jFt) then
+                            -- सुरक्षित रिप्लेसमेंट और उसे वापस Lua स्ट्रिंग बनाना
+                            local nc = jContent.replace(jFt, jRt):toString()
+                            noteEditor.setText(nc)
+                            
+                            pcall(function() if toneGen then toneGen.startTone(24, 100) end end)
+                            Toast.makeText(publicActivity, L("success_fnr"), 0).show()
+                        else 
+                            Toast.makeText(publicActivity, L("fail_fnr"), 0).show() 
+                        end
+                    else 
+                        Toast.makeText(publicActivity, L("req_find"), 0).show() 
+                    end
+                end)
+                
+                -- अगर अब भी कोई एरर आया तो यह तुम्हें स्क्रीन पर बता देगा
+                if not btnOk then 
+                    AlertDialog.Builder(publicActivity)
+                    .setTitle("🚨 Replace Action Error")
+                    .setMessage(tostring(btnErr))
+                    .setPositiveButton("OK", nil)
+                    .show() 
+                end
+
             end).show()
         end)
     end
@@ -117,12 +148,10 @@ local ok, err = pcall(function()
     
     local Pattern = luajava.bindClass("java.util.regex.Pattern")
     
-    -- हम तुम्हारे ओरिजिनल फंक्शन को हैक करके नया फंक्शन बना रहे हैं
     _G.openSmartTextCleaner = function()
         local text = ""
         if noteEditor then text = noteEditor.getText().toString() end
         
-        -- 🌟 नया मेनू जिसमें तुम्हारे पुराने और मेरे 3 नए फीचर्स शामिल हैं 🌟
         local opts = {
             "📞 Extract Phone Numbers", "🔗 Extract Links", 
             "✂️ Remove Symbols", "🗑️ Remove Emojis", 
@@ -137,7 +166,6 @@ local ok, err = pcall(function()
             local JString = luajava.bindClass("java.lang.String")
             local jText = JString.valueOf(text)
             
-            -- तुम्हारे पुराने 8 फीचर्स (0 से 7)
             if w == 0 then
                 if #text == 0 then Toast.makeText(activity, "Write something first!", 0).show(); return end
                 local matcher = Pattern.compile("(?:\\+?\\d{1,3}[- ]?)?\\d{10}").matcher(jText); local nums = {}; while matcher.find() do table.insert(nums, matcher.group()) end
