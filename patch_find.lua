@@ -1,5 +1,5 @@
--- 🔍 Nova Pad v3.0 - Public Smart Find Patch (Stable)
--- Smart Intent, TalkBack Accessibility & Crash-Proof Engine
+-- 🔍 Nova Pad v3.0 - Public Smart Find Patch (Stable & Crash-Proof)
+-- Smart Intent, TalkBack Accessibility & Java Engine
 
 if APP_VERSION_NAME == "v3.0" then
     pcall(function()
@@ -17,7 +17,6 @@ if APP_VERSION_NAME == "v3.0" then
         end
         local function LP(en, hi) return (getPatchLang() == "hi") and hi or en end
 
-        -- 1. हिंदी के नंबरों को इंग्लिश नंबरों में बदलने वाला जादुई कनवर्टर
         local function convertHindiDigits(str)
             local s = tostring(str)
             s = string.gsub(s, "०", "0"); s = string.gsub(s, "१", "1"); s = string.gsub(s, "२", "2")
@@ -27,13 +26,17 @@ if APP_VERSION_NAME == "v3.0" then
             return s
         end
 
-        -- 2. सुरक्षित लोअरकेस
+        -- 🌟 SUPER FIX: 100% Crash-Proof Java Lowercase Engine 🌟
         local function safeLower(str)
-            if not str then return "" end
-            return (string.gsub(tostring(str), "[A-Z]", string.lower))
+            if not str or str == "" then return "" end
+            local ok, res = pcall(function()
+                local JString = luajava.bindClass("java.lang.String")
+                return JString.valueOf(tostring(str)):toLowerCase():toString()
+            end)
+            if ok and res then return res end
+            return string.lower(tostring(str)) -- Fallback
         end
 
-        -- 3. वाशिंग मशीन (Smart Cleanup)
         local function smartClean(str)
             if not str then return "" end
             local s = tostring(str)
@@ -45,7 +48,6 @@ if APP_VERSION_NAME == "v3.0" then
             return s
         end
 
-        -- 4. जादुई कनवर्टर (Bytes to Characters for Selection)
         local function getJavaIndices(str, startByte, endByte)
             local startChar, endChar, chars = 0, 0, 0
             local i, len = 1, string.len(str)
@@ -67,23 +69,21 @@ if APP_VERSION_NAME == "v3.0" then
 
         -- 🔥 Main Find Button Injection
         if btnReaderSearch then
-            -- पहले पुराने वाले को हटाओ
             btnReaderSearch.setOnClickListener(nil)
             
-            -- नया शानदार बटन लगाओ
             btnReaderSearch.setOnClickListener(View.OnClickListener{
                 onClick = function()
                     pcall(function()
                         local l = LinearLayout(patchActivity); l.setOrientation(1); l.setPadding(50,20,50,20)
                         local findInput = EditText(patchActivity)
-                        findInput.setHint(LP("Type word OR 'Para 10' / 'लाइन 5' 🎤", "शब्द लिखें या बोलें 'पैराग्राफ 10' 🎤"))
+                        findInput.setHint(LP("Type word OR 'Para 10' / 'लाइन 5' 🎤", "सर्च करने के लिए शब्द लिखें या बोलें 'पैरा 10' 🎤"))
                         findInput.setTextColor(0xFF000000)
                         l.addView(findInput)
 
                         AlertDialog.Builder(patchActivity)
-                        .setTitle(LP("Smart Search 🔍", "स्मार्ट खोज 🔍"))
+                        .setTitle(LP("Find in Notes 🔍", "नोटिस में खोजें 🔍"))
                         .setView(l)
-                        .setPositiveButton(LP("Go", "खोजें"), function()
+                        .setPositiveButton(LP("Search", "खोजें"), function()
                             
                             pcall(function()
                                 local rawQuery = tostring(findInput.getText() or "")
@@ -91,7 +91,6 @@ if APP_VERSION_NAME == "v3.0" then
                                 local trimmedQuery = string.gsub(queryWithEngNums, "^%s*(.-)%s*$", "%1")
                                 if trimmedQuery == "" then return end
 
-                                -- 🔥 COMMAND DETECTOR 🔥
                                 local isCommand = false
                                 local reqNum = 0
                                 
@@ -104,7 +103,6 @@ if APP_VERSION_NAME == "v3.0" then
                                     end
                                 end
 
-                                -- 🔥 JUMP TO COMMAND 🔥
                                 if isCommand and reqNum > 0 then
                                     if paraList and paraList.getVisibility() == 0 then
                                         local adapter = paraList.getAdapter()
@@ -145,7 +143,7 @@ if APP_VERSION_NAME == "v3.0" then
                                     return 
                                 end
 
-                                -- 🔥 NORMAL TEXT SEARCH 🔥
+                                -- 🔥 NORMAL TEXT SEARCH WITH SAFE JAVA ENGINE 🔥
                                 local cleanQuery = smartClean(trimmedQuery)
                                 local safeQ = safeLower(cleanQuery)
 
@@ -176,7 +174,7 @@ if APP_VERSION_NAME == "v3.0" then
                                 elseif readerBody then
                                     local fullText = tostring(readerBody.getText() or "")
                                     local cleanFullText = smartClean(fullText)
-                                    local safeFullText = safeLower(cleanFullText)
+                                    local safeFullText = safeLower(cleanFullText) -- 👈 Now 100% Crash Proof
                                     
                                     local startByte, endByte = string.find(safeFullText, safeQ, 1, true)
                                     if startByte and endByte then
