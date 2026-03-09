@@ -1,16 +1,27 @@
--- 🚀 NOVA PAD - THE MASTER ROUTER (Beta Channel & Multi-Patch System)
--- Supports: v2.9 & v3.0
+-- 🚀 NOVA PAD - THE MASTER ROUTER (v3.0 Internal Mode)
 
-if APP_VERSION_NAME == "v2.9" or APP_VERSION_NAME == "v3.0" then
+if APP_VERSION_NAME == "v2.9" then
+    -- 🛑 2.9 को पूरी तरह बंद कर दिया गया है (Force Update Message)
+    pcall(function()
+        AlertDialog.Builder(activity)
+        .setTitle("⚠️ Update Required")
+        .setMessage("Nova Pad v2.9 has been discontinued. Please update to v3.0 for new features and the best experience.")
+        .setPositiveButton("OK", nil)
+        .setCancelable(false)
+        .show()
+    end)
+
+elseif APP_VERSION_NAME == "v3.0" then
+    -- ✅ 3.0 के लिए मास्टर राऊटर (अभी कोई पैच नहीं है, सब कुछ इंटरनल चलेगा)
     pcall(function()
         local patchActivity = activity
         local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
         local devFile = rootDirPatch .. "developer_mode.txt"
 
-        -- 🌟 1. तुम्हारा सीक्रेट बीटा पासवर्ड 🌟
+        -- 🌟 तुम्हारा सीक्रेट बीटा पासवर्ड 🌟
         local mySecretBetaCode = "Mayank@123"
 
-        -- 🚨 2. सीक्रेट बीटा स्विच (Top Title पर लॉन्ग प्रेस) 🚨
+        -- 🚨 सीक्रेट बीटा स्विच (Top Title पर लॉन्ग प्रेस) 🚨
         if topTitle then
             topTitle.setOnLongClickListener(View.OnLongClickListener{
                 onLongClick = function()
@@ -27,8 +38,7 @@ if APP_VERSION_NAME == "v2.9" or APP_VERSION_NAME == "v3.0" then
                         .show()
                     else
                         local codeInput = EditText(patchActivity)
-                        codeInput.setHint("Enter Secret Beta Code...")
-                        
+                        codeInput.setHint("Enter Secret Beta Code...")                        
                         AlertDialog.Builder(patchActivity)
                         .setTitle("🔒 Beta Access Required")
                         .setView(codeInput)
@@ -50,47 +60,32 @@ if APP_VERSION_NAME == "v2.9" or APP_VERSION_NAME == "v3.0" then
             })
         end
 
-        -- 🚥 3. ट्रैफिक कंट्रोलर (चेक करो कि यूज़र टेस्टर है या पब्लिक) 🚥
+        -- 🚥 चेक करो कि यूज़र टेस्टर है या पब्लिक 🚥
         local isBetaUser = false
         local f_check = io.open(devFile, "r")
         if f_check then isBetaUser = true; f_check:close() end
 
-        -- 📁 4. पैच फाइल्स की लिस्ट (Raw Links)
+        -- 📁 पैच फाइल्स की लिस्ट 
         local patchList = {}
         
-        -- ✅ यह फाइल्स सबको मिलेंगी (Public + Beta)
-        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tts.lua")
-        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_notify.lua")
-        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_stable_ui.lua")
-        table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_tools.lua")
+        -- 🔥 मैंने यहाँ से 2.9 की सारी पुरानी फाइल्स हटा दी हैं 🔥
+        -- ताकि 3.0 सिर्फ अपने 'इंटरनल' सोर्स कोड पर चले और कोई ओवरराइडिंग ना हो!
 
-        -- 🔥 बीटा और पब्लिक का अलग-अलग रास्ता 🔥
         if isBetaUser then
-            -- 🔬 सिर्फ बीटा टेस्टर्स के लिए (Find Lab और Beta Test)
-            table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find_lab.lua")
-            table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_beta_test.lua")
-            Toast.makeText(patchActivity, "🛠️ Master: Beta Channel Loaded", 0).show()
+            Toast.makeText(patchActivity, "🛠️ Beta Channel: Running on Internal Code", 0).show()
+            
+            -- भविष्य में अगर कभी 3.0 के बीटा टेस्टर्स को कोई नया पैच देना हो, 
+            -- तो बस उसका लिंक यहाँ नीचे डाल देना:
+            -- table.insert(patchList, "https://raw.githubusercontent.com/.../beta_patch.lua")
         else
-            -- 🌍 सिर्फ आम यूज़र्स के लिए (Stable Find)
-            table.insert(patchList, "https://raw.githubusercontent.com/teamsp32-cell/Nova-pad/main/patch_find.lua") 
+            -- भविष्य में 3.0 के पब्लिक यूज़र्स के लिए पैच यहाँ डलेंगे।
         end
 
-        -- 🚀 5. सभी पैचेस को बैकग्राउंड में सुरक्षित तरीके से चलाना
+        -- 🚀 बैकग्राउंड पैच रनर (अभी लिस्ट खाली है, इसलिए यह चुपचाप इग्नोर कर देगा)
         for i, url in ipairs(patchList) do
             Http.get(url, function(code, content)
                 if code == 200 and content and #content > 5 then
-                    local ok, err = pcall(load(content))
-                    if not ok and isBetaUser then
-                        -- अगर कोई पैच फेल होता है, तो सिर्फ तुम्हें (Beta) एरर दिखेगा
-                        local errInput = EditText(patchActivity)
-                        errInput.setText("Patch Failed: " .. url .. "\n\n" .. tostring(err))
-                        errInput.setTextIsSelectable(true)
-                        AlertDialog.Builder(patchActivity)
-                        .setTitle("Beta Crash Report")
-                        .setView(errInput)
-                        .setPositiveButton("OK", nil)
-                        .show()
-                    end
+                    pcall(load(content))
                 end
             end)
         end
