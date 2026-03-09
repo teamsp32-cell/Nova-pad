@@ -1,4 +1,4 @@
--- 🔍 Nova Pad - Smart Find Patch (Crash-Proof & Command Fixed)
+-- 🔍 Nova Pad - Smart Find Patch (Crash Catcher Edition)
 
 pcall(function()
     local patchActivity = activity
@@ -64,7 +64,6 @@ pcall(function()
         return startChar, endChar
     end
 
-    -- 🔥 Main Find Button Injection
     if btnReaderSearch then
         btnReaderSearch.setOnClickListener(nil)
         
@@ -82,43 +81,40 @@ pcall(function()
                     .setView(l)
                     .setPositiveButton(LP("Search", "खोजें"), function()
                         
-                        pcall(function()
+                        -- 🚨 यहाँ मैंने क्रैश डिटेक्टर लगाया है! 🚨
+                        local ok, err = pcall(function()
                             local rawQuery = tostring(findInput.getText() or "")
                             local queryWithEngNums = convertHindiDigits(rawQuery)
                             local trimmedQuery = string.gsub(queryWithEngNums, "^%s*(.-)%s*$", "%1")
                             if trimmedQuery == "" then return end
 
-                            -- 🔥 COMMAND DETECTOR (Java Bulletproof Engine) 🔥
                             local isCommand = false
                             local reqNum = 0
                             
                             local numText = string.match(trimmedQuery, "%d+")
                             if numText then
                                 reqNum = tonumber(numText)
+                                local lowerQ = safeLower(trimmedQuery)
                                 
-                                -- Lua की जगह Java का contains इस्तेमाल कर रहे हैं (हिंदी के लिए बेस्ट)
-                                local JString = luajava.bindClass("java.lang.String")
-                                local jSafeQ = JString.valueOf(trimmedQuery):toLowerCase()
-                                
-                                if jSafeQ:contains("para") or jSafeQ:contains("पैरा") or jSafeQ:contains("पेरा") or jSafeQ:contains("अनुच्छेद") or jSafeQ:contains("line") or jSafeQ:contains("लाइन") or jSafeQ:contains("पंक्ति") then
+                                -- बिना Java के प्योर Lua स्ट्रिंग मैच (ताकि क्रैश न हो)
+                                if string.find(lowerQ, "para") or string.find(trimmedQuery, "पैरा") or string.find(trimmedQuery, "पेरा") or string.find(trimmedQuery, "अनुच्छेद") or string.find(lowerQ, "line") or string.find(trimmedQuery, "लाइन") or string.find(trimmedQuery, "पंक्ति") then
                                     isCommand = true
                                 end
                             end
 
-                            -- 🔥 JUMP TO COMMAND 🔥
                             if isCommand and reqNum > 0 then
-                                if paraList and paraList.getVisibility() == 0 then
-                                    local adapter = paraList.getAdapter()
+                                if _G.paraList and _G.paraList.getVisibility() == 0 then
+                                    local adapter = _G.paraList.getAdapter()
                                     if adapter and reqNum <= adapter.getCount() then
-                                        paraList.setSelection(reqNum - 1)
+                                        _G.paraList.setSelection(reqNum - 1)
                                         local msg = LP("Paragraph " .. reqNum .. " selected", "पैराग्राफ " .. reqNum .. " चुना गया")
                                         Toast.makeText(patchActivity, msg, 0).show()
                                         pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
                                     else
                                         Toast.makeText(patchActivity, LP("Invalid Number!", "यह नंबर मौजूद नहीं है!"), 0).show()
                                     end
-                                elseif readerBody then
-                                    local fullText = tostring(readerBody.getText() or "")
+                                elseif _G.readerBody then
+                                    local fullText = tostring(_G.readerBody.getText() or "")
                                     local currentLine = 1
                                     local startByte = 1
                                     
@@ -134,8 +130,8 @@ pcall(function()
                                         if not endByte then endByte = string.len(fullText) else endByte = endByte - 1 end
                                         
                                         local sChar, eChar = getJavaIndices(fullText, startByte, endByte)
-                                        readerBody.requestFocus()
-                                        readerBody.setSelection(sChar, eChar)
+                                        _G.readerBody.requestFocus()
+                                        _G.readerBody.setSelection(sChar, eChar)
                                         local msg = LP("Line " .. reqNum .. " selected", "लाइन " .. reqNum .. " चुनी गई")
                                         Toast.makeText(patchActivity, msg, 0).show()
                                         pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
@@ -143,18 +139,16 @@ pcall(function()
                                         Toast.makeText(patchActivity, LP("Invalid Number!", "यह नंबर मौजूद नहीं है!"), 0).show()
                                     end
                                 else
-                                    -- 🚨 अगर यह एरर आया, तो समझ जाना 3.0 में UI के ID बदल गए हैं!
-                                    Toast.makeText(patchActivity, "❌ Error: paraList या readerBody स्क्रीन पर नहीं मिला!", 1).show()
+                                    Toast.makeText(patchActivity, "❌ UI Error: paraList/readerBody not found!", 1).show()
                                 end
                                 return 
                             end
 
-                            -- 🔥 NORMAL TEXT SEARCH WITH SAFE JAVA ENGINE 🔥
                             local cleanQuery = smartClean(trimmedQuery)
                             local safeQ = safeLower(cleanQuery)
 
-                            if paraList and paraList.getVisibility() == 0 then
-                                local adapter = paraList.getAdapter()
+                            if _G.paraList and _G.paraList.getVisibility() == 0 then
+                                local adapter = _G.paraList.getAdapter()
                                 local foundIndex = -1
                                 if adapter then
                                     for i = 0, adapter.getCount() - 1 do
@@ -167,7 +161,7 @@ pcall(function()
                                 end
 
                                 if foundIndex ~= -1 then
-                                    paraList.setSelection(foundIndex) 
+                                    _G.paraList.setSelection(foundIndex) 
                                     local msg = LP("Found at paragraph " .. (foundIndex + 1), "मिल गया! पैराग्राफ " .. (foundIndex + 1) .. " चुना गया")
                                     Toast.makeText(patchActivity, msg, 0).show()
                                     pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
@@ -177,16 +171,16 @@ pcall(function()
                                     pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(failMsg) end)
                                 end
 
-                            elseif readerBody then
-                                local fullText = tostring(readerBody.getText() or "")
+                            elseif _G.readerBody then
+                                local fullText = tostring(_G.readerBody.getText() or "")
                                 local cleanFullText = smartClean(fullText)
                                 local safeFullText = safeLower(cleanFullText) 
                                 
                                 local startByte, endByte = string.find(safeFullText, safeQ, 1, true)
                                 if startByte and endByte then
                                     local startChar, endChar = getJavaIndices(cleanFullText, startByte, endByte)
-                                    readerBody.requestFocus()
-                                    readerBody.setSelection(startChar, endChar)
+                                    _G.readerBody.requestFocus()
+                                    _G.readerBody.setSelection(startChar, endChar)
                                     local msg = LP("Word found and selected", "शब्द मिल गया और चुन लिया गया")
                                     Toast.makeText(patchActivity, msg, 0).show()
                                     pcall(function() patchActivity.getWindow().getDecorView().announceForAccessibility(msg) end)
@@ -197,6 +191,16 @@ pcall(function()
                                 end
                             end
                         end)
+                        
+                        -- 🚨 अगर क्रैश हुआ, तो यह बॉक्स खुल कर तुम्हें असली एरर बताएगा! 🚨
+                        if not ok then
+                            AlertDialog.Builder(patchActivity)
+                            .setTitle("🚨 Silent Crash Caught!")
+                            .setMessage("Error Details:\n" .. tostring(err))
+                            .setPositiveButton("OK", nil)
+                            .show()
+                        end
+
                     end)
                     .setNegativeButton(LP("Cancel", "कैंसिल"), nil)
                     .show()
