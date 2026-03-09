@@ -1,17 +1,29 @@
--- 🚨 NOVA PAD - BULLETPROOF MASTER ROUTER 🚨
+-- 🚨 NOVA PAD - THE NIL FIX MASTER ROUTER 🚨
 
 pcall(function()
     local patchActivity = activity
-    local vName = tostring(APP_VERSION_NAME)
     
-    -- 🚨 सायरन: यह स्क्रीन पर बताएगा कि गिटहब कनेक्ट हुआ और ऐप का असली वर्ज़न नाम क्या है!
-    Toast.makeText(patchActivity, "🌐 Master Connected! Version: " .. vName, 1).show()
+    -- 🕵️‍♂️ Android सिस्टम से सीधा वर्ज़न निकालने का असली तरीका
+    local vName = "nil"
+    pcall(function()
+        local pm = patchActivity.getPackageManager()
+        local pi = pm.getPackageInfo(patchActivity.getPackageName(), 0)
+        vName = tostring(pi.versionName)
+    end)
+
+    -- अगर फिर भी nil आए, तो पुराना ग्लोबल वेरिएबल चेक करें
+    if vName == "nil" or vName == "" then
+        vName = tostring(APP_VERSION_NAME)
+    end
+
+    -- सायरन!
+    Toast.makeText(patchActivity, "🌐 Master Active! Version: " .. vName, 1).show()
 
     local rootDirPatch = patchActivity.getExternalFilesDir(nil).toString() .. "/"
     local devFile = rootDirPatch .. "developer_mode.txt"
 
-    -- 🛑 2.9 DISCONTINUED
-    if vName == "v2.9" or vName == "2.9" then
+    -- 🛑 2.9 DISCONTINUED (अगर वर्ज़न में 2.9 लिखा है)
+    if string.find(vName, "2.9") then
         AlertDialog.Builder(patchActivity)
         .setTitle("⚠️ Update Required")
         .setMessage("Nova Pad v2.9 has been discontinued. Please update to v3.0.")
@@ -19,8 +31,8 @@ pcall(function()
         .setCancelable(false)
         .show()
 
-    -- ✅ 3.0 ACTIVE (यहाँ मैंने 'v3.0' और '3.0' दोनों डाल दिए हैं ताकि मिसमैच न हो)
-    elseif vName == "v3.0" or vName == "3.0" then
+    -- ✅ 3.0 ACTIVE (अगर वर्ज़न 3.0 है, या 'nil' है, तो भी यही चलेगा!)
+    else
         
         -- 🌟 सीक्रेट बीटा स्विच 
         local mySecretBetaCode = "Mayank@123"
