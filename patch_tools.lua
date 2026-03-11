@@ -1,5 +1,5 @@
--- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD 🌐
--- Features: 14 Languages, Auto-Settings Button Injector, Mega Tools
+-- 🌐 NOVA PAD - FULL PUBLIC MASTER BUILD (SMART PATCH) 🌐
+-- Features: 14 Languages, Smart Backward Compatibility, Mega Tools
 
 local ok, err = pcall(function()
     require "import"
@@ -21,7 +21,7 @@ local ok, err = pcall(function()
     _G.curtainView = _G.curtainView or nil
 
     -- =======================================================
-    -- 🌍 1. THE 14-LANGUAGE DICTIONARY
+    -- 🌍 1. THE 14-LANGUAGE DICTIONARY (For Older Versions)
     -- =======================================================
     local langData = {
         en = { empty="[Empty]", slot_empty="This slot is empty!", clip_title="📋 Clipboard Manager", slot="Slot", paste="📋 Paste", share="📤 Share", clear="🗑️ Clear", pasted="Pasted!", open_editor="Open the Editor first!", cleared="Slot cleared!", fnr_title="🔄 Find & Replace", find_hint="Old Word", replace_hint="New Word", replace_all="Replace All", req_find="Old word is required!", success_fnr="✨ Awesome! Words replaced!", fail_fnr="❌ Word not found!", curtain_on="🥷 Privacy Curtain ON!", curtain_off="Curtain removed", menu_title="🧰 Smart Text Tools", tools={"📞 Extract Phone Numbers", "🔗 Extract Links", "✂️ Remove Symbols", "🗑️ Remove Emojis", "✨ Auto-Format Article", "🗣️ Read Text Aloud (TTS)", "🔠 Convert to UPPERCASE", "🔡 Convert to lowercase", "📋 Clipboard Manager", "🔄 Find & Replace", "🥷 Privacy Curtain"} },
@@ -58,20 +58,19 @@ local ok, err = pcall(function()
     local function L(key) return langData[_G.appLanguage][key] or langData["en"][key] or key end
 
     -- =======================================================
-    -- 🚀 2. AUTO-INJECTOR: SETTINGS LANGUAGE BUTTON
-    -- (तुम्हारे मेन कोड को बिना छुए सेटिंग्स में बटन घुसाने की कला)
+    -- 🚀 2. SMART AUTO-INJECTOR: SETTINGS LANGUAGE BUTTON
+    -- (यह 3.1 को पहचान लेगा और डबल बटन नहीं बनाएगा!)
     -- =======================================================
     pcall(function()
-        if tabSettings and not _G.langBtnInjected then
+        -- 🔥 THE FIX: Added `not btnLangSettings` to ensure it only runs on v2.9 / v3.0 🔥
+        if tabSettings and not btnLangSettings and not _G.langBtnInjected then
             local btnLang = Button(publicActivity)
             btnLang.setText("🌍 Change App Language (14 Languages)")
-            btnLang.setBackgroundColor(0xFF2196F3) -- Cool Blue Color
+            btnLang.setBackgroundColor(0xFF2196F3) 
             btnLang.setTextColor(0xFFFFFFFF)
             
-            -- इसे 'Settings' टाइटल के ठीक नीचे (Index 1) घुसा देंगे
             tabSettings.addView(btnLang, 1)
             
-            -- बटन का काम: 14 भाषाओं की लिस्ट खोलना
             btnLang.onClick = function()
                 local langNames = {"🇬🇧 English", "🇮🇳 हिन्दी", "🇮🇩 Bahasa Indonesia", "🇮🇳 मराठी", "🇮🇳 ગુજરાતી", "🇧🇩 বাংলা", "🇮🇳 தமிழ்", "🇮🇳 తెలుగు", "🇵🇰 اردو", "🇪🇸 Español", "🇫🇷 Français", "🇵🇹 Português", "🇷🇺 Русский", "🇸🇦 العربية"}
                 local langCodes = {"en", "hi", "id", "mr", "gu", "bn", "ta", "te", "ur", "es", "fr", "pt", "ru", "ar"}
@@ -152,19 +151,20 @@ local ok, err = pcall(function()
             l.addView(f); l.addView(r)
             AlertDialog.Builder(publicActivity).setTitle(L("fnr_title")).setView(l).setPositiveButton(L("replace_all"), function()
                 local btnOk, btnErr = pcall(function()
-                    local ft = tostring(f.getText() or "")
-                    local rt = tostring(r.getText() or "")
+                    local rawFt = tostring(f.getText() or "")
+                    local rawRt = tostring(r.getText() or "")
+                    local ft = rawFt:gsub("^%s*(.-)%s*$", "%1")
+                    local rt = rawRt:gsub("^%s*(.-)%s*$", "%1")
+                    
                     if #ft > 0 then 
-                        local content = tostring(noteEditor.getText() or "")
-                        if string.find(content, ft, 1, true) then
-                            local result = ""; local startIdx = 1
-                            while true do
-                                local s, e = string.find(content, ft, startIdx, true)
-                                if not s then result = result .. string.sub(content, startIdx); break end
-                                result = result .. string.sub(content, startIdx, s - 1) .. rt
-                                startIdx = e + 1
-                            end
-                            noteEditor.setText(result)
+                        local JString = luajava.bindClass("java.lang.String")
+                        local Pattern = luajava.bindClass("java.util.regex.Pattern")
+                        local jContent = JString.valueOf(tostring(noteEditor.getText() or ""))
+                        local quotedFt = Pattern.quote(ft)
+                        local matcher = Pattern.compile(quotedFt, Pattern.CASE_INSENSITIVE).matcher(jContent)
+                        
+                        if matcher.find() then
+                            noteEditor.setText(matcher.replaceAll(rt))
                             pcall(function() if toneGen then toneGen.startTone(24, 100) end end)
                             Toast.makeText(publicActivity, L("success_fnr"), 0).show()
                         else Toast.makeText(publicActivity, L("fail_fnr"), 0).show() end
@@ -218,7 +218,6 @@ local ok, err = pcall(function()
                 elseif w == 3 then noteEditor.setText(jText.replaceAll("[\\x{1F300}-\\x{1F6FF}|\\x{2600}-\\x{26FF}|\\x{2700}-\\x{27BF}|\\x{1F900}-\\x{1F9FF}|\\x{1F1E6}-\\x{1F1FF}]", "")); Toast.makeText(activity, "Done!", 0).show()
                 elseif w == 4 then local ft = jText.replaceAll(" +", " "); ft = ft.replaceAll("([.,])([A-Za-z\\u0900-\\u097F])", "$1 $2"); noteEditor.setText(ft.trim()); Toast.makeText(activity, "Done!", 0).show() 
                 elseif w == 5 then 
-                    -- 🗣️ TTS MEGA LANGUAGE PICKER
                     if #text == 0 then return end
                     local ttsOpts = {"🇮🇳 Hindi", "🇬🇧 English", "🇮🇩 Indonesian", "🇪🇸 Spanish", "🇫🇷 French", "🇷🇺 Russian", "⚙️ Voice Settings", "⏹️ Stop Reading"}
                     showNovaMenu("🗣️ Select Voice Language", ttsOpts, function(tIdx)
